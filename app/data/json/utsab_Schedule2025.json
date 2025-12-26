@@ -1,0 +1,247 @@
+[
+    {
+        "id": 1,
+        "event_name": "Bodhon",
+        "event_description": "Bodhon at 6:30 PM",
+        "event_date": "27-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 2,
+        "event_name": "Maha Sasthi puja",
+        "event_description": "Maha Sasthi puja at 8:30 AM",
+        "event_date": "28-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 3,
+        "event_name": "Amontron, Adhibas",
+        "event_description": "Amontron, Adhibas at 7:00 PM",
+        "event_date": "28-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 4,
+        "event_name": "Aarati, Pushpanjali",
+        "event_description": "Aarati, Pushpanjali at 8:30 PM",
+        "event_date": "28-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 5,
+        "event_name": "Naba patrika prabesh",
+        "event_description": "Naba patrika prabesh at 8:29 AM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 6,
+        "event_name": "Maha Saptami puja",
+        "event_description": "Maha Saptami puja at 9:00 AM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 7,
+        "event_name": "Aarti Pushpanjali",
+        "event_description": "Aarti Pushpanjali at 10:30 AM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 8,
+        "event_name": "Bhog",
+        "event_description": "Bhog at 11:30 AM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 9,
+        "event_name": "Sondhya Aarati",
+        "event_description": "Sondhya Aarati at 7:00 PM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 10,
+        "event_name": "Maha Asthami puja",
+        "event_description": "Maha Asthami puja at 7:00 AM",
+        "event_date": "30-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 11,
+        "event_name": "Aarati, Pushpanjali",
+        "event_description": "Aarati, Pushpanjali at 8:30 AM",
+        "event_date": "30-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 12,
+        "event_name": "Bhog",
+        "event_description": " Bhog at 11:30 AM",
+        "event_date": "30-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 13,
+        "event_name": "Sondhi Puja",
+        "event_description": "Sandhi puja: 1:21 PM - 2 PM",
+        "event_date": "30-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 14,
+        "event_name": "Sondhya Aarati",
+        "event_description": "Sondhya Aarati at 7:00 PM",
+        "event_date": "30-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 15,
+        "event_name": "Borno Anonyo Live, Feat",
+        "event_description": "Borno Anonyo Live, Feat at 8:00 PM",
+        "event_date": "30-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 16,
+        "event_name": "In house Dance",
+        "event_description": "In house Dance at 8:15 PM",
+        "event_date": "27-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 17,
+        "event_name": "Tarangini Kathak Kendra",
+        "event_description": "Tarangini Kathak Kendra at 9:00 PM",
+        "event_date": "27-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 18,
+        "event_name": "Ankita Bhattacharyya Live",
+        "event_description": "Ankita Bhattacharyya Live at 8:00 PM",
+        "event_date": "28-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 19,
+        "event_name": "Art Competition",
+        "event_description": "Art Competition at 11:00 AM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 20,
+        "event_name": "Utsab Smile",
+        "event_description": "Utsab Smile 12:00 PM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 21,
+        "event_name": "Iman Chakraborty Live",
+        "event_description": "Iman Chakraborty Live at 8:00 PM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 22,
+        "event_name": "Soham and friends",
+        "event_description": "Soham and friends at 8:45 PM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 23,
+        "event_name": "In house Kids Dance",
+        "event_description": "In house Kids Dance at 8:45 PM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 24,
+        "event_name": "Inauguration Ceremony",
+        "event_description": "Inauguration Ceremony at 8:00 PM",
+        "event_date": "29-09-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 25,
+        "event_name": "Maha Nabami puja",
+        "event_description": "Maha Nabami puja at 9:00 AM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 26,
+        "event_name": "Aarati, Pushpanjali",
+        "event_description": "Aarati, Pushpanjali at 10:30 AM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 27,
+        "event_name": "Bhog",
+        "event_description": "Bhog at 11:30 PM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 28,
+        "event_name": "Hom",
+        "event_description": "Hom at 1:00 PM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 29,
+        "event_name": "Chandipath",
+        "event_description": "Chandipath at 2:00 PM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 30,
+        "event_name": "Sondhya Aarati",
+        "event_description": "Sondhya Aarati at 7:00 PM",
+        "event_date": "01-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 31,
+        "event_name": "Maha Dasami puja",
+        "event_description": "Maha Dasami puja at 9:00 AM",
+        "event_date": "02-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 32,
+        "event_name": "Aarati, Pushpanjali",
+        "event_description": "Aarati, Pushpanjali at 9:30 PM",
+        "event_date": "02-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 33,
+        "event_name": "Maa er Borondhon",
+        "event_description": "Maa er Borondhon at 11:30 AM",
+        "event_date": "02-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 34,
+        "event_name": "Sindur Khela",
+        "event_description": "Sindur Khela at 12:00 PM",
+        "event_date": "02-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 35,
+        "event_name": "Kojagori Lakshmi Puja",
+        "event_description": "Kojagori Lakshmi Puja at 9:00 PM",
+        "event_date": "06-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    }
+]

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+sqlalchemy
+pytest
+requests
+scikit-learn
+justwatch
+pandas
