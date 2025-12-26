@@ -7,4 +7,4 @@ pandas
 pillow
 pytesseract
 joblib
-pthon-multipart
+python-multipart
