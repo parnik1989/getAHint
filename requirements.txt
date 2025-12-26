@@ -1,9 +1,10 @@
 fastapi
 uvicorn[standard]
 pydantic
-sqlalchemy
-pytest
 requests
 scikit-learn
-justwatch
 pandas
+pillow
+pytesseract
+joblib
+pthon-multipart
