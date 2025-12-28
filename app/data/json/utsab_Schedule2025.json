@@ -243,5 +243,12 @@
         "event_description": "Kojagori Lakshmi Puja at 9:00 PM",
         "event_date": "06-10-2025",
         "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 36,
+        "event_name": "Utsab Picnic",
+        "event_description": "Utsab Picnic at 9:00 AM",
+        "event_date": "12-10-2025",
+        "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
     }
 ]

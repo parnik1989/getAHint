@@ -59,20 +59,20 @@ def process_image_file(file_bytes: bytes, filename: str) -> List[Event]:
         print(f"Extracted Text from uploaded file {filename}: "+text)
         events = extract_events_from_text(text)
         base, _ = os.path.splitext(filename)
-        saveEventsToDatastore(events, base)
+        saveEventsToDatastore(text, base)
         return events
     except Exception as e:
         print(f"Failed to process uploaded image {filename}: {e}")
         raise
 
 
-def saveEventsToDatastore(events: List[Event], base_name: str):
+def saveEventsToDatastore(extractedText: str, base_name: str):
     save_dir = "app/data/json"   # adjust this path to your project structure
     os.makedirs(save_dir, exist_ok=True)
-    file_path = os.path.join(save_dir, f"{base_name}.json")
+    file_path = os.path.join(save_dir, f"{base_name}.txt")
     # Write JSON file
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(events, f, indent=4)
+        f.write(extractedText)
     print(f"Events saved to {file_path}")
 
 

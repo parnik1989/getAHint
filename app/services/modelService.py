@@ -5,7 +5,7 @@ import joblib
 import json
 import os
 
-# Load the formatted JSON file
+# Load the formatted JSON file.  
 print("Loading puja schedule data..." + pd.__version__)
 
 
@@ -22,17 +22,36 @@ def train_model(club: str):
 
     dfs = []
     for fname in os.listdir(json_dir):
-        if not fname.lower().endswith(".json"):
+        if not fname.lower().endswith((".json", ".txt")):
             continue
         path = os.path.join(json_dir, fname)
         try:
-            # try pandas reader first, fallback to json.load
-            try:
-                df_part = pd.read_json(path)
-            except ValueError:
+            if fname.lower().endswith(".txt"):
+                # Read each line as "event_name | event_date"
                 with open(path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                df_part = pd.DataFrame(data)
+                    lines = f.readlines()
+                events = []
+                for line in lines:
+                    parts = line.strip().split("|")
+                    if len(parts) == 2:
+                        event_name = parts[0].strip()
+                        event_date = parts[1].strip()
+                        events.append({
+                            "event_name": event_name,
+                            "event_description": event_name,
+                            "event_date": event_date
+                        })
+                df_part = pd.DataFrame(events)
+            elif fname.lower().endswith(".json"):
+                try:
+                    df_part = pd.read_json(path)
+                except ValueError:
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    df_part = pd.DataFrame(data)
+            else:
+                continue
+
             if "event_description" not in df_part.columns:
                 print(f"Skipping {fname}: no 'event_description' column")
                 continue
@@ -43,20 +62,20 @@ def train_model(club: str):
             continue
 
     if not dfs:
-        print("No valid JSON files with event_description found.")
+        print("No data files loaded for training.")
         return
 
     df = pd.concat(dfs, ignore_index=True)
-    df = df.dropna(subset=["event_description"])
     print(f"Total events for training: {len(df)}")
     # Step 1: Vectorize event descriptions
     vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(df["event_description"])
+    tfidf_matrix = vectorizer.fit_transform(df["event_description"].astype(str))
 
     # Step 2: Compute similarity matrix
     cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
     # Step 3: Save model snapshot
+    os.makedirs("app/ml", exist_ok=True)
     joblib.dump((vectorizer, cosine_sim, df), "app/ml/eventModel.pkl")
 
 def testExistingModel(event_description: str):
@@ -73,7 +92,4 @@ def testExistingModel(event_description: str):
     top_indices = sim_scores[0].argsort()[-5:][::-1]
     similar_events = df.iloc[top_indices]
 
-    print("Top similar events to '{}':".format(test_event))
-    print(similar_events[["event_name", "event_description", "event_date"]])
-
-    return {"status": "Model tested successfully", "similar_events": similar_events.to_dict(orient="records")}
+    return {similar_events.to_dict(orient="records")[0]['event_name']+" at "+similar_events.to_dict(orient="records")[0]['event_date']}
