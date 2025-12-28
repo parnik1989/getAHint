@@ -20,9 +20,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Recommendations
 
-- Endpoint: `GET /api/v1/recommendations?movie_id=<id>&n=<count>`
+- Endpoint: "GET /eventService/getAllEventData"
 - Example:
 
 ```bash
-curl "http://localhost:8000/api/v1/recommendations?movie_id=3&n=5"
+curl "http://localhost:8000/eventService/getAllEventData"
 ```

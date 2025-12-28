@@ -23,6 +23,10 @@ async def telegram_webhook(request: Request):
     # Send reply back to Telegram
     requests.post(
         f"{TELEGRAM_API_URL}/sendMessage",
+<<<<<<< HEAD
         json={"chat_id": chat_id, "text": response_text.pop()} 
+=======
+        json={"chat_id": chat_id, "text": response_text.pop()}
+>>>>>>> af8b6737ead75562eb38c52c2229f14df83c8b72
     )
     return {"status": "ok"}
