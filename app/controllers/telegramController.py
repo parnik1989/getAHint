@@ -16,13 +16,13 @@ async def telegram_webhook(request: Request):
     data = await request.json()
     chat_id = data["message"]["chat"]["id"]
     user_text = data["message"]["text"]
-
+    print(chat_id, user_text)
     # Call your backend logic
     response_text = get_event_response(user_text)
-    print(response_text)
+    print(list({'Maha Sasthi puja at 28-09-2025'})[0] )
     # Send reply back to Telegram
     requests.post(
         f"{TELEGRAM_API_URL}/sendMessage",
-        json={"chat_id": chat_id, "text": response_text}
+        json={"chat_id": chat_id, "text": response_text.pop()} 
     )
     return {"status": "ok"}
