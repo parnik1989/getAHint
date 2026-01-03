@@ -8,3 +8,5 @@ pillow
 pytesseract
 joblib
 python-multipart
+transformers
+torch

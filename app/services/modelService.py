@@ -1,6 +1,9 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression 
 import joblib
 import json
 import os
@@ -8,8 +11,36 @@ import os
 # Load the formatted JSON file.  
 print("Loading puja schedule data..." + pd.__version__)
 
+def intent_train_model():
+    # Example training data
+    training_data = [
+        ("hi", "greeting"),
+        ("hello", "greeting"),
+        ("help me", "help"),
+        ("what can you do", "help"),
+        ("show me puja events", "event_query"),
+        ("festival schedule", "event_query"),
+        ("Dance", "event_query"),
+        ("meetup", "event_query"),
+        ("Dance", "event_query"),
+        ("random text", "event_query"),
+    ]
+
+    X_train = [text for text, label in training_data]
+    y_train = [label for text, label in training_data]
+
+    pipeline = Pipeline([
+        ('vectorizer', CountVectorizer()),
+        ('classifier', LogisticRegression())
+    ])
+    pipeline.fit(X_train, y_train)
+
+    # Save model
+    joblib.dump(pipeline, "app/ml/intentModel.pkl")
+    return pipeline
 
 def trainEventModelService(club: str):
+    intent_train_model()
     train_model(club)
     # Add actual model training code here
     return {"status": "Model training initiated"}
@@ -77,6 +108,7 @@ def train_model(club: str):
     # Step 3: Save model snapshot
     os.makedirs("app/ml", exist_ok=True)
     joblib.dump((vectorizer, cosine_sim, df), "app/ml/eventModel.pkl")
+    print("Model training completed and saved.")
 
 def testExistingModel(event_description: str):
     # Load the trained model
@@ -91,5 +123,4 @@ def testExistingModel(event_description: str):
     # Get top 5 similar events
     top_indices = sim_scores[0].argsort()[-5:][::-1]
     similar_events = df.iloc[top_indices]
-
-    return {similar_events.to_dict(orient="records")[0]['event_name']+" at "+similar_events.to_dict(orient="records")[0]['event_date']}
+    return {similar_events.to_dict(orient="records")[0]['event_name']+" is scheduled at "+similar_events.to_dict(orient="records")[0]['event_date'] + " in Gachibowli Stadium"}
