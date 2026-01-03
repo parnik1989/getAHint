@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request
 import requests
 from app.services.modelService import testExistingModel
-from transformers import pipeline
 import joblib
 
 router = APIRouter()

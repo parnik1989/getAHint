@@ -251,7 +251,34 @@
         "event_date": "12-10-2025",
         "event_address": "Utsab Cultural Association, Gachibowli Stadium, Hyderabad"
     },
-    [
+    {
+        "id": 100,
+        "event_name": "Diwali Mela",
+        "event_description": "A festive mela celebrating Diwali with food stalls, games, and cultural performances.",
+        "event_date": "01-11-2025",
+        "event_address": "Gachibowli Stadium, Hyderabad"
+    },
+    {
+        "id": 101,
+        "event_name": "Classical Music Evening",
+        "event_description": "An evening of classical Indian music featuring renowned artists.",
+        "event_date": "15-11-2025",
+        "event_address": "Shilpakala Vedika, Hitech City, Hyderabad"
+    },
+    {
+        "id": 102,
+        "event_name": "Winter Art Workshop",
+        "event_description": "A week-long art workshop for beginners and enthusiasts to explore various art forms.",
+        "event_date": "20-11-2025",
+        "event_address": "Lamakaan Cultural Center, Banjara Hills, Hyderabad"
+    },
+    {
+        "id": 200,
+        "event_name": "Hyderabad Dance Festival",
+        "event_description": "A grand dance festival showcasing traditional and contemporary dance forms.",
+        "event_date": "25-12-2025",
+        "event_address": "Ravindra Bharathi Auditorium, Saifabad, Hyderabad"
+    },
     {
         "id": 201,
         "event_name": "Urban Kokila For Budding Singers and Musicians",
@@ -322,5 +349,4 @@
         "event_date": "30-01-2026",
         "event_address": "Ravindra Bharathi Auditorium, Saifabad, Hyderabad"
     }
-]
 ]

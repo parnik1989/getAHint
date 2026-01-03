@@ -123,4 +123,4 @@ def testExistingModel(event_description: str):
     # Get top 5 similar events
     top_indices = sim_scores[0].argsort()[-5:][::-1]
     similar_events = df.iloc[top_indices]
-    return {similar_events.to_dict(orient="records")[0]['event_name']+" is scheduled at "+similar_events.to_dict(orient="records")[0]['event_date'] + " in Gachibowli Stadium"}
+    return {similar_events.to_dict(orient="records")[0]['event_name']+" is scheduled at "+similar_events.to_dict(orient="records")[0]['event_date'] + " in "+ similar_events.to_dict(orient="records")[0]['event_address'],}
