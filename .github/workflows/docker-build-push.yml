@@ -64,4 +64,4 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Image digest
-        run: echo "Image pushed: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        run: "echo Image pushed: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
