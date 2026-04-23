@@ -22,7 +22,7 @@ RUN useradd -m -u 1000 appuser
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Set environment variables
-ENV PATH=/home/appuser/.local/bin:$PATH \n    PYTHONUNBUFFERED=1 \n    PYTHONDONTWRITEBYTECODE=1
+ENV PATH=/home/appuser/.local/bin:$PATH    PYTHONUNBUFFERED=1    PYTHONDONTWRITEBYTECODE=1
 
 # Copy application code
 COPY --chown=appuser:appuser . /app
@@ -34,7 +34,7 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \n    CMD python -c "import requests; requests.get('http://localhost:8000/docs', timeout=5)" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD python -c "import requests; requests.get('http://localhost:8000/docs', timeout=5)" || exit 1
 
 # Run application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
