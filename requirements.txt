@@ -9,3 +9,4 @@ pytesseract
 joblib
 python-multipart
 torch
+sentence-transformers
