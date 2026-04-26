@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+gunicorn
 pydantic
 requests
 scikit-learn
