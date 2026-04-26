@@ -76,7 +76,6 @@ jobs:
   deploy-to-aci:
     runs-on: ubuntu-latest
     needs: build-and-push
-    environment: production
 
     steps:
       - name: Checkout repository
