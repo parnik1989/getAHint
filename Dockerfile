@@ -4,7 +4,9 @@ FROM python:3.11-slim as builder
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends    gcc    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
@@ -22,7 +24,10 @@ RUN useradd -m -u 1000 appuser
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Set environment variables
-ENV PATH=/home/appuser/.local/bin:$PATH    PYTHONUNBUFFERED=1    PYTHONDONTWRITEBYTECODE=1
+ENV PATH=/home/appuser/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/home/appuser/.local/lib/python3.11/site-packages:$PYTHONPATH
 
 # Copy application code
 COPY --chown=appuser:appuser . /app
