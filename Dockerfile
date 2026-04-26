@@ -15,7 +15,7 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 # Runtime stage
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
@@ -27,7 +27,7 @@ COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/home/appuser/.local/lib/python3.11/site-packages:$PYTHONPATH
+    PYTHONPATH=/app:$PYTHONPATH
 
 # Copy application code
 COPY --chown=appuser:appuser . /app
