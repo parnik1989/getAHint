@@ -27,8 +27,7 @@ COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app:$PYTHONPATH \
-    PORT=8000
+    PYTHONPATH=/app:$PYTHONPATH
 
 # Copy application code
 COPY --chown=appuser:appuser . /app
@@ -43,4 +42,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD python -c "import os, requests; requests.get(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/docs', timeout=5)" || exit 1
 
 # Run application
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
