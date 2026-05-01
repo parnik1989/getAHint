@@ -31,6 +31,9 @@ def test_model(query: str):
         query: Search query to find similar items
     
     Returns:
-        Top 5 similar items based on semantic similarity
+        User-facing answer text for the query
     """
-    return testExistingModel(query)
+    model_response = testExistingModel(query)
+    if "answer" in model_response:
+        return {"answer": model_response["answer"]}
+    return {"answer": model_response.get("error", "I could not find an answer from the trained data.")}

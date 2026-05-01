@@ -1,13 +1,60 @@
 from io import BytesIO
 import json
 import os
-from typing import List
-from PIL import Image
+from typing import Any, Dict, Iterable, List, Optional
 from app.models.eventModel import Event
-import pytesseract
 import re
 from datetime import datetime
 
+
+
+def _extract_event_records(data: Any) -> Iterable[Dict[str, Any]]:
+    if isinstance(data, list):
+        return [item for item in data if isinstance(item, dict)]
+
+    if not isinstance(data, dict):
+        return []
+
+    if isinstance(data.get("events"), list):
+        return [item for item in data["events"] if isinstance(item, dict)]
+
+    dict_values = [value for value in data.values() if isinstance(value, dict)]
+    if dict_values:
+        return dict_values
+
+    return [data]
+
+
+def _normalize_date(date_value: Any) -> str:
+    date_text = str(date_value).strip()
+    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%b %d"):
+        try:
+            parsed_date = datetime.strptime(date_text, date_format)
+            if date_format == "%b %d":
+                parsed_date = parsed_date.replace(year=2025)
+            return parsed_date.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return date_text
+
+
+def _normalize_event_record(record: Dict[str, Any]) -> Optional[Event]:
+    event_id = record.get("id", record.get("event_id"))
+    required_fields = ("event_name", "event_description", "event_date", "event_address")
+
+    if event_id is None or any(record.get(field) in (None, "") for field in required_fields):
+        return None
+
+    try:
+        return Event(
+            id=int(event_id),
+            event_name=str(record["event_name"]).strip(),
+            event_description=str(record["event_description"]).strip(),
+            event_date=_normalize_date(record["event_date"]),
+            event_address=str(record["event_address"]).strip(),
+        )
+    except (TypeError, ValueError):
+        return None
 
 
 def consolidateAllEventsFromDataStore() -> List[Event]:
@@ -26,21 +73,17 @@ def consolidateAllEventsFromDataStore() -> List[Event]:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            if isinstance(data, list):
-                all_events.extend(data)
-            elif isinstance(data, dict):
-                # common structures: {"events": [...]}, or id->event mapping, or single event dict
-                if "events" in data and isinstance(data["events"], list):
-                    all_events.extend(data["events"])
-                else:
-                    # try to extract dict values that look like event objects
-                    dict_values = [v for v in data.values() if isinstance(v, dict)]
-                    if dict_values:
-                        all_events.extend(dict_values)
-                    else:
-                        all_events.append(data)
-            else:
+            records = _extract_event_records(data)
+            if not records:
                 print(f"Skipping {fname}: unexpected JSON structure")
+                continue
+
+            for record in records:
+                event = _normalize_event_record(record)
+                if event is None:
+                    print(f"Skipping invalid event in {fname}: {record}")
+                    continue
+                all_events.append(event)
         except Exception as e:
             print(f"Failed to read {path}: {e}")
             continue
@@ -53,6 +96,9 @@ def process_image_file(file_bytes: bytes, filename: str) -> List[Event]:
     Process an uploaded image (bytes) and save extracted events to JSON named like the source image.
     Overwrites existing JSON for same base filename.
     """
+    from PIL import Image
+    import pytesseract
+
     try:
         img = Image.open(BytesIO(file_bytes))
         text = pytesseract.image_to_string(img)

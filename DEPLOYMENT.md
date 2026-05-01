@@ -55,6 +55,12 @@ docker run -p 8000:8000 getahintservice:latest
 
 You can now deploy from any cloud provider:
 
+**Railway:**
+- Connect the GitHub repository directly if you want Railway to build from the Dockerfile.
+- Or deploy the GHCR image produced by GitHub Actions: `ghcr.io/<your-org>/<your-repo>:latest`.
+- Railway provides the runtime `PORT` environment variable automatically. The Dockerfile uses `${PORT:-8000}`, so it works on Railway and still defaults to `8000` locally.
+- Add runtime secrets in Railway variables, for example `TELEGRAM_BOT_TOKEN`.
+
 **Kubernetes:**
 ```yaml
 containers:

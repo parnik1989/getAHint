@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
@@ -8,10 +7,128 @@ import joblib
 import json
 import os
 from sentence_transformers import SentenceTransformer
-from datetime import datetime
+from datetime import date, datetime
+from app.services.event_service import consolidateAllEventsFromDataStore
 
-# Load the formatted JSON file.  
-print("Loading data..." + pd.__version__)
+EVENT_MODEL_PATH = "app/ml/eventModel.pkl"
+INTENT_MODEL_PATH = "app/ml/intentModel.pkl"
+TRAINING_METADATA_PATH = "app/ml/training_metadata.pkl"
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+
+
+def _model_to_dict(model_instance):
+    if hasattr(model_instance, "model_dump"):
+        return model_instance.model_dump()
+    return model_instance.dict()
+
+
+def _load_embedding_model(allow_download=False):
+    try:
+        return SentenceTransformer(EMBEDDING_MODEL_NAME, local_files_only=True)
+    except Exception:
+        if not allow_download:
+            raise
+        return SentenceTransformer(EMBEDDING_MODEL_NAME)
+
+
+def _parse_event_date(date_value):
+    if date_value is None or pd.isna(date_value):
+        return None
+
+    date_text = str(date_value).strip()
+    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%b %d"):
+        try:
+            parsed_date = datetime.strptime(date_text, date_format).date()
+            if date_format == "%b %d":
+                parsed_date = parsed_date.replace(year=2025)
+            return parsed_date
+        except ValueError:
+            continue
+    return None
+
+
+def _clean_value(value):
+    if value is None or pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
+def _build_event_search_text(row):
+    text_fields = [
+        "event_name",
+        "event_description",
+        "event_date",
+        "event_address",
+        "event_category",
+        "event_type",
+    ]
+    return " | ".join(_clean_value(row.get(field)) for field in text_fields if _clean_value(row.get(field)))
+
+
+def _prepare_event_dataframe():
+    events = consolidateAllEventsFromDataStore()
+    records = []
+
+    for event in events:
+        record = _model_to_dict(event)
+        parsed_date = _parse_event_date(record.get("event_date"))
+        record["event_date"] = parsed_date.isoformat() if parsed_date else _clean_value(record.get("event_date"))
+        record["search_text"] = _build_event_search_text(record)
+        records.append(record)
+
+    df = pd.DataFrame(records)
+    if df.empty:
+        return df
+
+    df = df[df["search_text"].astype(str).str.len() > 0].copy()
+    df["event_date_dt"] = pd.to_datetime(df["event_date"], errors="coerce")
+    return df
+
+
+def _is_upcoming_query(query):
+    query_text = query.lower()
+    upcoming_terms = (
+        "upcoming",
+        "coming",
+        "future",
+        "next",
+        "soon",
+        "this week",
+        "this month",
+        "today",
+        "tomorrow",
+    )
+    return any(term in query_text for term in upcoming_terms)
+
+
+def _row_to_event_result(row):
+    return {
+        "id": int(row["id"]) if pd.notna(row.get("id")) else None,
+        "event_name": _clean_value(row.get("event_name")),
+        "event_description": _clean_value(row.get("event_description")),
+        "event_date": _clean_value(row.get("event_date")),
+        "event_address": _clean_value(row.get("event_address")),
+        "similarity_score": round(float(row.get("similarity_score", 0)), 4),
+    }
+
+
+def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
+    if not results:
+        return "I could not find matching events in the trained data."
+
+    prefix = "I found these matching events:"
+    if upcoming_only:
+        prefix = "I found these matching upcoming events:"
+    if fallback_to_past:
+        prefix = "I could not find upcoming events in the trained data. Closest trained matches are:"
+
+    lines = [prefix]
+    for event in results:
+        lines.append(
+            f"- {event['event_name']} on {event['event_date']} at {event['event_address']}. "
+            f"{event['event_description']}"
+        )
+    return "\n".join(lines)
 
 def discover_text_columns(df):
     """Automatically discover text columns suitable for semantic search"""
@@ -219,7 +336,7 @@ def intent_train_model():
 
     # Save model
     os.makedirs("app/ml", exist_ok=True)
-    joblib.dump(pipeline, "app/ml/intentModel.pkl")
+    joblib.dump(pipeline, INTENT_MODEL_PATH)
     print("Intent model training completed.")
     return pipeline
 
@@ -257,151 +374,93 @@ def trainEventModelService(data_source: str = None):
 
 def train_generic_model():
     """
-    Generic model training that works with any data structure
-    Automatically discovers, loads, and trains on all available data
+    Train the event retrieval model on normalized event records.
     """
     data_dir = "app/data/json"
-    
-    print(f"\nDiscovering data files in: {data_dir}")
     discovered_files = discover_data_files(data_dir)
-    
-    if not discovered_files:
-        print(f"No data files found in {data_dir}")
-        return {"files_loaded": 0, "total_records": 0, "error": "No data files found"}
-    
-    print(f"Found {len(discovered_files)} data file(s):")
-    for fname, _ in discovered_files:
-        print(f"  - {fname}")
-    
-    # Load all data files
-    all_data = []
-    file_stats = []
-    
-    for fname, fpath in discovered_files:
-        print(f"\nLoading: {fname}...")
-        df = load_data_file(fpath, fname)
-        
-        if df is None or df.empty:
-            print(f"  ⚠ Skipped: No valid data")
-            continue
-        
-        # Find best text column
-        text_col = select_best_text_column(df)
-        if text_col is None:
-            print(f"  ⚠ Skipped: No suitable text column found")
-            continue
-        
-        # Store data with metadata
-        all_data.append({
-            "source": fname,
-            "dataframe": df,
-            "text_column": text_col,
-            "records": len(df)
-        })
-        
-        file_stats.append({
-            "file": fname,
-            "records": len(df),
-            "columns": list(df.columns),
-            "text_column": text_col
-        })
-        
-        print(f"  ✓ Loaded: {len(df)} records (using column: '{text_col}')")
-    
-    if not all_data:
-        print("\nNo usable data found in any files")
-        return {"files_loaded": 0, "total_records": 0, "error": "No usable data found"}
-    
-    # Combine all data
-    print(f"\nCombining data from {len(all_data)} source(s)...")
-    combined_texts = []
-    combined_df = pd.DataFrame()
-    
-    for data_item in all_data:
-        df = data_item["dataframe"]
-        text_col = data_item["text_column"]
-        
-        # Add text to combined list
-        combined_texts.extend(df[text_col].astype(str).tolist())
-        
-        # Add dataframe to combined
-        combined_df = pd.concat([combined_df, df], ignore_index=True)
-    
+
+    print(f"\nPreparing normalized event data from: {data_dir}")
+    combined_df = _prepare_event_dataframe()
     total_records = len(combined_df)
     print(f"Total records to train on: {total_records}")
-    
+
     if total_records == 0:
-        return {"files_loaded": len(all_data), "total_records": 0, "error": "No records to train"}
-    
-    # Train semantic embedding model
+        return {"files_loaded": 0, "total_records": 0, "error": "No event records to train"}
+
+    combined_texts = combined_df["search_text"].astype(str).tolist()
+
     print(f"\nTraining semantic embedding model on {total_records} records...")
     print("Generating embeddings (this may take a moment)...")
-    
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    model = _load_embedding_model(allow_download=True)
     embeddings = model.encode(combined_texts, show_progress_bar=True)
-    
-    # Compute similarity matrix
-    print("Computing similarity matrix...")
-    cosine_sim = cosine_similarity(embeddings)
-    
-    # Save complete model
+
     print("Saving trained model...")
     os.makedirs("app/ml", exist_ok=True)
-    joblib.dump((model, embeddings, combined_df), "app/ml/eventModel.pkl")
-    
-    # Also save training metadata
+    joblib.dump((EMBEDDING_MODEL_NAME, embeddings, combined_df), EVENT_MODEL_PATH)
+
     metadata = {
         "training_date": datetime.now().isoformat(),
         "total_records": total_records,
-        "total_files": len(all_data),
-        "file_stats": file_stats,
-        "embedding_model": "all-MiniLM-L6-v2",
-        "total_embeddings": len(embeddings)
+        "total_files": len(discovered_files),
+        "files": [file_name for file_name, _ in discovered_files],
+        "columns": list(combined_df.columns),
+        "embedding_model": EMBEDDING_MODEL_NAME,
+        "total_embeddings": len(embeddings),
     }
-    joblib.dump(metadata, "app/ml/training_metadata.pkl")
-    
+    joblib.dump(metadata, TRAINING_METADATA_PATH)
+
     print("\n✓ Model saved successfully!")
-    
+
     return {
-        "files_loaded": len(all_data),
+        "files_loaded": len(discovered_files),
         "total_records": total_records,
         "embeddings_generated": len(embeddings),
-        "file_stats": file_stats,
+        "columns": list(combined_df.columns),
         "training_completed": True
     }
 
-def testExistingModel(query: str):
+def testExistingModel(query: str, top_k: int = 5):
     """
-    Generic test function that finds similar items from trained model
-    Works with any data type (events, products, content, etc.)
+    Find the most relevant trained events for a user query.
     """
     try:
-        model, embeddings, df = joblib.load("app/ml/eventModel.pkl")
+        model_ref, embeddings, df = joblib.load(EVENT_MODEL_PATH)
+        model = _load_embedding_model(allow_download=True) if isinstance(model_ref, str) else model_ref
         print("Model loaded successfully.")
-        
-        # Encode query
+
         query_vec = model.encode([query])
         sim_scores = cosine_similarity(query_vec, embeddings)
-        
-        # Get top 5 similar items
-        top_indices = sim_scores[0].argsort()[-5:][::-1]
-        similar_items = df.iloc[top_indices]
-        
-        # Build results (generic - work with any columns)
-        results = []
-        for idx, row in similar_items.iterrows():
-            result_str = f"Match {idx + 1}: "
-            # Try to build a meaningful description from available columns
-            for col in df.columns:
-                if col in ['event_name', 'name', 'title']:
-                    result_str += f"{row[col]}"
-                    break
-            if len(result_str) == len(f"Match {idx + 1}: "):
-                result_str += str(row.iloc[0])
-            
-            results.append(result_str)
-        
-        return {"results": results, "total_matches": len(results)}
-    
+        ranked_df = df.copy()
+        ranked_df["similarity_score"] = sim_scores[0]
+        ranked_df = ranked_df.sort_values("similarity_score", ascending=False)
+
+        today = pd.Timestamp(date.today())
+        wants_upcoming = _is_upcoming_query(query)
+        fallback_to_past = False
+
+        if wants_upcoming and "event_date_dt" in ranked_df.columns:
+            upcoming_df = ranked_df[ranked_df["event_date_dt"].notna() & (ranked_df["event_date_dt"] >= today)]
+            if not upcoming_df.empty:
+                ranked_df = upcoming_df.sort_values(["event_date_dt", "similarity_score"], ascending=[True, False])
+            else:
+                fallback_to_past = True
+
+        top_matches = ranked_df.head(top_k)
+        results = [_row_to_event_result(row) for _, row in top_matches.iterrows()]
+
+        return {
+            "query": query,
+            "answer": format_event_answer(
+                results,
+                upcoming_only=not fallback_to_past and bool(wants_upcoming),
+                fallback_to_past=fallback_to_past,
+            ),
+            "results": results,
+            "total_matches": len(results),
+            "upcoming_only": not fallback_to_past and bool(wants_upcoming),
+            "fallback_to_past": fallback_to_past,
+        }
+
     except Exception as e:
         return {"error": str(e), "status": "Model not found or error in testing"}
