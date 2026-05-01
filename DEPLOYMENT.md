@@ -59,7 +59,15 @@ You can now deploy from any cloud provider:
 - Connect the GitHub repository directly if you want Railway to build from the Dockerfile.
 - Or deploy the GHCR image produced by GitHub Actions: `ghcr.io/<your-org>/<your-repo>:latest`.
 - Railway provides the runtime `PORT` environment variable automatically. The Dockerfile uses `${PORT:-8000}`, so it works on Railway and still defaults to `8000` locally.
-- Add runtime secrets in Railway variables, for example `TELEGRAM_BOT_TOKEN`.
+- Add runtime variables in Railway:
+  - `TELEGRAM_BOT_TOKEN`: your token from BotFather.
+  - `PUBLIC_BASE_URL`: your Railway app URL, for example `https://your-app.up.railway.app`.
+- Open Swagger UI at `https://your-app.up.railway.app/docs`.
+- Check Telegram config at `https://your-app.up.railway.app/telegramService/telegram/status`.
+- Register the Telegram webhook after deployment:
+  ```bash
+  curl -X POST "https://your-app.up.railway.app/telegramService/telegram/setWebhook"
+  ```
 
 **Kubernetes:**
 ```yaml
