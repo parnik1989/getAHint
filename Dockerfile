@@ -32,8 +32,7 @@ COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app:$PYTHONPATH \
-    PORT=8000
+    PYTHONPATH=/app:$PYTHONPATH
 
 # Copy application code
 COPY --chown=appuser:appuser . /app
