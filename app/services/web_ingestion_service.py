@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List
 from urllib.parse import urlparse
 
@@ -17,9 +17,10 @@ USER_AGENT = "getAHintService/1.0 event-ingestion"
 
 
 def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, Any]:
-    urls = _discover_urls(request)
+    urls, serper_events = _discover_sources(request)
     extracted_events: List[EventCreate] = []
     failed_urls = []
+    extracted_events.extend(serper_events)
 
     for url in urls:
         try:
@@ -34,6 +35,7 @@ def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, An
     return {
         "searched_queries": _queries_for_request(request),
         "urls_checked": len(urls),
+        "events_from_search_results": len(serper_events),
         "events_extracted": len(extracted_events),
         "events_after_dedupe": len(deduped_events),
         "ingestion": ingestion_result,
@@ -42,16 +44,20 @@ def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, An
     }
 
 
-def _discover_urls(request: WebIngestionRequest) -> List[str]:
+def _discover_sources(request: WebIngestionRequest) -> tuple[List[str], List[EventCreate]]:
     urls = list(request.source_urls or [])
+    serper_events = []
     configured_urls = os.getenv("EVENT_SOURCE_URLS", "").strip()
     if configured_urls:
         urls.extend(url.strip() for url in configured_urls.split(",") if url.strip())
 
     for query in _queries_for_request(request):
-        urls.extend(_search_web(query, request.max_search_results))
+        search_results = _search_web(query, request.max_search_results)
+        urls.extend(result["link"] for result in search_results if result.get("link"))
+        if request.include_search_result_snippets:
+            serper_events.extend(_events_from_serper_results(search_results, query, request.city))
 
-    return _dedupe_urls(urls)
+    return _dedupe_urls(urls), _dedupe_events(serper_events)
 
 
 def _queries_for_request(request: WebIngestionRequest) -> List[str]:
@@ -62,7 +68,7 @@ def _queries_for_request(request: WebIngestionRequest) -> List[str]:
     return [query if request.city.lower() in query.lower() else f"{query} {request.city}" for query in queries]
 
 
-def _search_web(query: str, max_results: int) -> List[str]:
+def _search_web(query: str, max_results: int) -> List[Dict[str, Any]]:
     serper_api_key = os.getenv("SERPER_API_KEY", "").strip()
     if not serper_api_key:
         return []
@@ -76,12 +82,43 @@ def _search_web(query: str, max_results: int) -> List[str]:
     response.raise_for_status()
     payload = response.json()
 
-    urls = []
-    for result in payload.get("organic", []):
-        link = result.get("link")
-        if link:
-            urls.append(link)
-    return urls
+    return payload.get("organic", [])
+
+
+def _events_from_serper_results(results: List[Dict[str, Any]], query: str, city: str) -> List[EventCreate]:
+    events = []
+    for result in results:
+        event = _event_from_serper_result(result, query, city)
+        if event:
+            events.append(event)
+    return events
+
+
+def _event_from_serper_result(result: Dict[str, Any], query: str, city: str) -> EventCreate | None:
+    title = _clean_event_title(result.get("title"))
+    snippet = _clean_text(result.get("snippet"))
+    link = _clean_text(result.get("link"))
+    source_date = _clean_text(result.get("date"))
+    combined_text = " ".join(part for part in (title, snippet, source_date) if part)
+
+    event_date = _find_date_in_text(combined_text)
+    if not title or not snippet or not event_date:
+        return None
+
+    if not _looks_like_event_text(combined_text):
+        return None
+
+    address = _infer_address_from_text(combined_text, city) or city or _domain_name(link)
+    description = _serper_description(title, snippet, link)
+
+    return EventCreate(
+        event_name=title[:255],
+        event_description=description,
+        event_date=event_date,
+        event_address=address,
+        source_name=link or query,
+        source_type="web_serper",
+    )
 
 
 def _fetch_url(url: str) -> str:
@@ -219,9 +256,18 @@ def _normalize_event_date(value: Any) -> str:
     if "T" in date_text:
         date_text = date_text.split("T", 1)[0]
 
-    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%B %d, %Y", "%b %d, %Y"):
+    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"):
         try:
             return datetime.strptime(date_text, date_format).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    for date_format in ("%B %d", "%b %d"):
+        try:
+            parsed = datetime.strptime(date_text, date_format).date().replace(year=date.today().year)
+            if parsed < date.today() - timedelta(days=7):
+                parsed = parsed.replace(year=parsed.year + 1)
+            return parsed.strftime("%Y-%m-%d")
         except ValueError:
             continue
 
@@ -232,13 +278,82 @@ def _normalize_event_date(value: Any) -> str:
 def _find_date_in_text(text: str) -> str:
     patterns = (
         r"\b\d{4}-\d{2}-\d{2}\b",
+        r"\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}\b",
         r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}\b",
+        r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b",
     )
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
             return _normalize_event_date(match.group(0))
     return ""
+
+
+def _clean_event_title(value: Any) -> str:
+    title = _clean_text(value)
+    if not title:
+        return ""
+
+    title = re.split(
+        r"\s+[-|]\s+(?:BookMyShow|Paytm Insider|Insider|Events?|Tickets?|LBB|What'?s Hot)",
+        title,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    title = re.sub(r"\b(?:tickets?|events?|booking|book online)\b", "", title, flags=re.IGNORECASE)
+    return _clean_text(title.strip(" -|:"))
+
+
+def _looks_like_event_text(text: str) -> bool:
+    event_terms = {
+        "concert",
+        "conference",
+        "event",
+        "events",
+        "festival",
+        "meetup",
+        "mela",
+        "night",
+        "performance",
+        "show",
+        "summit",
+        "talk",
+        "tickets",
+        "workshop",
+    }
+    text_terms = set(re.findall(r"[a-z0-9]+", text.lower()))
+    return bool(event_terms & text_terms)
+
+
+def _infer_address_from_text(text: str, city: str) -> str:
+    clean_text = _clean_text(text)
+    location_patterns = (
+        r"\bat\s+([^.;|]+)",
+        r"\bvenue[:\s]+([^.;|]+)",
+        r"\blocation[:\s]+([^.;|]+)",
+    )
+    for pattern in location_patterns:
+        match = re.search(pattern, clean_text, flags=re.IGNORECASE)
+        if not match:
+            continue
+        candidate = _clean_text(match.group(1))
+        if candidate:
+            if city and city.lower() not in candidate.lower():
+                candidate = f"{candidate}, {city}"
+            return candidate[:500]
+
+    if city and city.lower() in clean_text.lower():
+        return city
+    return ""
+
+
+def _serper_description(title: str, snippet: str, link: str) -> str:
+    description = snippet
+    if title and title.lower() not in snippet.lower():
+        description = f"{title}. {snippet}"
+    if link:
+        description = f"{description} Source: {link}"
+    return description[:2000]
 
 
 def _dedupe_events(events: List[EventCreate]) -> List[EventCreate]:

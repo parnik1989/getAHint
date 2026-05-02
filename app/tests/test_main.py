@@ -3,7 +3,7 @@ from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.main import app
 from app.services.vector_service import filter_and_rank_results
-from app.services.web_ingestion_service import _extract_events_from_html
+from app.services.web_ingestion_service import _event_from_serper_result, _extract_events_from_html
 
 client = TestClient(app)
 
@@ -100,3 +100,20 @@ def test_extracts_schema_org_event_json_ld():
     assert events[0].event_name == "Hyderabad Science Evening"
     assert events[0].event_date == "2026-08-12"
     assert events[0].event_address == "Science Center, Hyderabad"
+
+
+def test_parses_serper_result_into_event_shape():
+    result = {
+        "title": "Bonalu Festival Hyderabad - Events",
+        "link": "https://example.com/bonalu",
+        "snippet": "Bonalu Festival with folk dances and temple processions on July 15, 2026 at Ujjaini Mahankali Temple, Hyderabad.",
+        "date": "2 days ago",
+    }
+
+    event = _event_from_serper_result(result, "upcoming cultural events Hyderabad", "Hyderabad")
+
+    assert event is not None
+    assert event.event_name == "Bonalu Festival Hyderabad"
+    assert event.event_date == "2026-07-15"
+    assert event.event_address == "Ujjaini Mahankali Temple, Hyderabad"
+    assert event.source_type == "web_serper"

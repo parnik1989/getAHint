@@ -121,12 +121,14 @@ You can now deploy from any cloud provider:
         "music events"
       ],
       "max_search_results": 10,
+      "include_search_result_snippets": true,
       "train_model": true
     }'
   ```
 - Optional web ingestion variables:
   - `EVENT_SOURCE_URLS`: comma-separated event listing URLs to check when no URLs are passed.
   - `SERPER_API_KEY`: enables web search for `queries`; without it, only explicit `source_urls` / `EVENT_SOURCE_URLS` are used.
+  - `include_search_result_snippets`: request flag that lets the app parse Serper titles/snippets into event rows when pages do not expose clean JSON-LD.
 - Daily web event sync scheduler variables:
   - `ENABLE_DAILY_WEB_SYNC`: set to `true` to run web sync daily.
   - `WEB_SYNC_RUN_AT_UTC`: daily run time in UTC, for example `02:00`.

@@ -18,6 +18,7 @@ class WebIngestionRequest(BaseModel):
     source_urls: list[str] | None = None
     city: str = "Hyderabad"
     max_search_results: int = 10
+    include_search_result_snippets: bool = True
     train_model: bool = True
 
 
