@@ -31,7 +31,7 @@ docker pull ghcr.io/parnik/getAHintService:latest
 
 #### 3. Run Container
 ```bash
-docker run -p 8000:8000 ghcr.io/parnik/getAHintService:latest
+docker run -p 8080:8080 ghcr.io/parnik/getAHintService:latest
 ```
 
 ### Manual Build (Optional)
@@ -39,7 +39,7 @@ docker run -p 8000:8000 ghcr.io/parnik/getAHintService:latest
 Build locally without pushing:
 ```bash
 docker build -t getahintservice:latest .
-docker run -p 8000:8000 getahintservice:latest
+docker run -p 8080:8080 getahintservice:latest
 ```
 
 ### Docker Improvements Made
@@ -49,7 +49,7 @@ docker run -p 8000:8000 getahintservice:latest
 ✅ **Health checks** - Automatic health monitoring
 ✅ **Better caching** - Faster rebuilds
 ✅ **Environment variables** - Proper Python config
-✅ **Port 8000** - Updated from port 80
+✅ **Port 8080** - Defaults to 8080 when `PORT` is not provided
 
 ### Deployment to Cloud
 
@@ -58,7 +58,51 @@ You can now deploy from any cloud provider:
 **Railway:**
 - Connect the GitHub repository directly if you want Railway to build from the Dockerfile.
 - Or deploy the GHCR image produced by GitHub Actions: `ghcr.io/<your-org>/<your-repo>:latest`.
-- Railway provides the runtime `PORT` environment variable automatically. The Dockerfile uses `${PORT:-8000}`, so it works on Railway and still defaults to `8000` locally.
+- Railway provides the runtime `PORT` environment variable automatically. The Dockerfile uses `${PORT:-8080}`, so it works on Railway and still defaults to `8080` locally.
+- Add a PostgreSQL database in Railway:
+  1. Open your Railway project.
+  2. Click **New**.
+  3. Choose **Database** → **Add PostgreSQL**.
+  4. Open your app service settings.
+  5. Add a variable named `DATABASE_URL`.
+  6. Set it to reference the Postgres service connection URL, usually available from Railway's variable picker.
+- The app creates the `events` table automatically on startup.
+- Seed your current bundled JSON events into Postgres once after deployment:
+  ```bash
+  curl -X POST "https://your-app.up.railway.app/eventService/seedEventsFromFiles"
+  ```
+- Add or update a single event in Postgres:
+  ```bash
+  curl -X POST "https://your-app.up.railway.app/eventService/events" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "event_name": "Hyderabad Science Talk",
+      "event_description": "A public lecture and discussion for science enthusiasts.",
+      "event_date": "2026-06-01",
+      "event_address": "Hyderabad",
+      "source_name": "manual",
+      "source_type": "api"
+    }'
+  ```
+- Add or update many events at once:
+  ```bash
+  curl -X POST "https://your-app.up.railway.app/eventService/events/bulk" \
+    -H "Content-Type: application/json" \
+    -d '[
+      {
+        "event_name": "Cultural Evening",
+        "event_description": "Music, dance, and food festival.",
+        "event_date": "2026-06-10",
+        "event_address": "Hyderabad",
+        "source_name": "manual",
+        "source_type": "api"
+      }
+    ]'
+  ```
+- Retrain the search model after seeding or adding events:
+  ```bash
+  curl -X GET "https://your-app.up.railway.app/modelService/trainEventModel"
+  ```
 - Add runtime variables in Railway:
   - `TELEGRAM_BOT_TOKEN`: your token from BotFather.
   - `PUBLIC_BASE_URL`: your Railway app URL, for example `https://your-app.up.railway.app`.
@@ -74,7 +118,7 @@ You can now deploy from any cloud provider:
 containers:
 - image: ghcr.io/parnik/getAHintService:latest
   ports:
-  - containerPort: 8000
+  - containerPort: 8080
 ```
 
 **Docker Compose:**
@@ -83,7 +127,7 @@ services:
   app:
     image: ghcr.io/parnik/getAHintService:latest
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
       - PYTHONUNBUFFERED=1
 ```

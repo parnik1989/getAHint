@@ -2,10 +2,15 @@ from io import BytesIO
 import json
 import os
 from typing import Any, Dict, Iterable, List, Optional
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from app.models.eventModel import Event
 import re
 from datetime import datetime
 from app.core.paths import DATA_DIR
+from app.db.models import EventRecord
+from app.db.session import SessionLocal
+from app.schemas.eventSchema import EventCreate
 
 
 
@@ -58,7 +63,17 @@ def _normalize_event_record(record: Dict[str, Any]) -> Optional[Event]:
         return None
 
 
-def consolidateAllEventsFromDataStore() -> List[Event]:
+def _event_record_to_schema(record: EventRecord) -> Event:
+    return Event(
+        id=record.id,
+        event_name=record.event_name,
+        event_description=record.event_description,
+        event_date=record.event_date,
+        event_address=record.event_address,
+    )
+
+
+def _load_events_from_files() -> List[Event]:
     json_dir = DATA_DIR
     all_events: List[Event] = []
 
@@ -90,6 +105,102 @@ def consolidateAllEventsFromDataStore() -> List[Event]:
             continue
 
     return all_events
+
+
+def get_events_from_db(db: Session) -> List[Event]:
+    records = db.query(EventRecord).order_by(EventRecord.event_date.asc(), EventRecord.id.asc()).all()
+    return [_event_record_to_schema(record) for record in records]
+
+
+def seed_events_from_files(db: Session) -> Dict[str, int]:
+    events = _load_events_from_files()
+    inserted = 0
+    updated = 0
+
+    for event in events:
+        existing = (
+            db.query(EventRecord)
+            .filter(
+                EventRecord.event_name == event.event_name,
+                EventRecord.event_date == event.event_date,
+                EventRecord.event_address == event.event_address,
+            )
+            .one_or_none()
+        )
+
+        if existing:
+            existing.event_description = event.event_description
+            existing.source_name = "bundled-json"
+            existing.source_type = "seed"
+            updated += 1
+            continue
+
+        db.add(
+            EventRecord(
+                event_name=event.event_name,
+                event_description=event.event_description,
+                event_date=event.event_date,
+                event_address=event.event_address,
+                source_name="bundled-json",
+                source_type="seed",
+            )
+        )
+        inserted += 1
+
+    db.commit()
+    return {"files_loaded_records": len(events), "inserted": inserted, "updated": updated}
+
+
+def upsert_event(db: Session, event: EventCreate) -> Event:
+    existing = (
+        db.query(EventRecord)
+        .filter(
+            EventRecord.event_name == event.event_name,
+            EventRecord.event_date == event.event_date,
+            EventRecord.event_address == event.event_address,
+        )
+        .one_or_none()
+    )
+
+    if existing:
+        existing.event_description = event.event_description
+        existing.source_name = event.source_name
+        existing.source_type = event.source_type
+        record = existing
+    else:
+        record = EventRecord(
+            event_name=event.event_name,
+            event_description=event.event_description,
+            event_date=event.event_date,
+            event_address=event.event_address,
+            source_name=event.source_name,
+            source_type=event.source_type,
+        )
+        db.add(record)
+
+    db.commit()
+    db.refresh(record)
+    return _event_record_to_schema(record)
+
+
+def upsert_events(db: Session, events: List[EventCreate]) -> Dict[str, int]:
+    for event in events:
+        upsert_event(db, event)
+    return {"upserted": len(events)}
+
+
+def consolidateAllEventsFromDataStore() -> List[Event]:
+    db = SessionLocal()
+    try:
+        events = get_events_from_db(db)
+        if events:
+            return events
+    except SQLAlchemyError as e:
+        print(f"Failed to read events from database: {e}")
+    finally:
+        db.close()
+
+    return _load_events_from_files()
 # ...existing code...
 
 def process_image_file(file_bytes: bytes, filename: str) -> List[Event]:

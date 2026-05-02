@@ -12,3 +12,5 @@ joblib
 python-multipart
 torch
 sentence-transformers
+sqlalchemy
+psycopg[binary]

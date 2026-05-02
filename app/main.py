@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from app.controllers import eventController, modelController, telegramController
+from app.db.base import Base
+from app.db.session import engine
 
 app = FastAPI(title="getAHintService")
+
+Base.metadata.create_all(bind=engine)
 
 app.include_router(eventController.router, prefix="/eventService")
 app.include_router(modelController.router, prefix="/modelService")
