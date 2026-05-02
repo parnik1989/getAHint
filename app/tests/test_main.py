@@ -3,6 +3,7 @@ from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.main import app
 from app.services.vector_service import filter_and_rank_results
+from app.services.web_ingestion_service import _extract_events_from_html
 
 client = TestClient(app)
 
@@ -66,3 +67,36 @@ def test_specific_query_filters_unrelated_vector_neighbors():
     filtered, _, _ = filter_and_rank_results(results, "bonalu festival")
 
     assert [event["event_name"] for event in filtered] == ["Bonalu Festival"]
+
+
+def test_extracts_schema_org_event_json_ld():
+    html = """
+    <html>
+      <head>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Event",
+          "name": "Hyderabad Science Evening",
+          "startDate": "2026-08-12T18:00:00+05:30",
+          "description": "Talks and demos for science enthusiasts.",
+          "location": {
+            "@type": "Place",
+            "name": "Science Center",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Hyderabad"
+            }
+          }
+        }
+        </script>
+      </head>
+    </html>
+    """
+
+    events = _extract_events_from_html(html, "https://example.com/events/science")
+
+    assert len(events) == 1
+    assert events[0].event_name == "Hyderabad Science Evening"
+    assert events[0].event_date == "2026-08-12"
+    assert events[0].event_address == "Science Center, Hyderabad"

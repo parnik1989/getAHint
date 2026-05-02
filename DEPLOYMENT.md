@@ -106,6 +106,36 @@ You can now deploy from any cloud provider:
   ```bash
   curl -X GET "https://your-app.up.railway.app/modelService/trainEventModel"
   ```
+- Sync events from configured web pages or web search:
+  ```bash
+  curl -X POST "https://your-app.up.railway.app/eventService/syncWebEvents" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "city": "Hyderabad",
+      "source_urls": [
+        "https://example.com/events"
+      ],
+      "queries": [
+        "upcoming cultural events",
+        "science events",
+        "music events"
+      ],
+      "max_search_results": 10,
+      "train_model": true
+    }'
+  ```
+- Optional web ingestion variables:
+  - `EVENT_SOURCE_URLS`: comma-separated event listing URLs to check when no URLs are passed.
+  - `SERPER_API_KEY`: enables web search for `queries`; without it, only explicit `source_urls` / `EVENT_SOURCE_URLS` are used.
+- Daily web event sync scheduler variables:
+  - `ENABLE_DAILY_WEB_SYNC`: set to `true` to run web sync daily.
+  - `WEB_SYNC_RUN_AT_UTC`: daily run time in UTC, for example `02:00`.
+  - `WEB_SYNC_CITY`: defaults to `Hyderabad`.
+  - `WEB_SYNC_QUERIES`: pipe-separated queries, for example `upcoming cultural events|music events|science events`.
+  - `WEB_SYNC_SOURCE_URLS`: pipe-separated source URLs for the scheduler. The manual endpoint can still use `source_urls`.
+  - `WEB_SYNC_MAX_SEARCH_RESULTS`: defaults to `10`.
+  - `WEB_SYNC_TRAIN_MODEL`: defaults to `true`; stores embeddings during ingestion.
+  - `WEB_SYNC_RUN_ON_STARTUP`: optional; set to `true` to run once immediately when the app starts.
 - Add runtime variables in Railway:
   - `TELEGRAM_BOT_TOKEN`: your token from BotFather.
   - `PUBLIC_BASE_URL`: your Railway app URL, for example `https://your-app.up.railway.app`.

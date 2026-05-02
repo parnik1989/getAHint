@@ -9,7 +9,8 @@ from app.services.event_service import (
     upsert_events,
 )
 from app.models.eventModel import Event
-from app.schemas.eventSchema import EventCreate
+from app.schemas.eventSchema import EventCreate, WebIngestionRequest
+from app.services.web_ingestion_service import ingest_web_events
 
 router = APIRouter()
 
@@ -46,6 +47,14 @@ def ingest_events(events: List[EventCreate], train_model: bool = True, db: Sessi
     ingestion_result = upsert_events(db, events, update_embeddings=train_model)
     training_result = _train_model_after_ingestion(train_model)
     return {"ingestion": ingestion_result, "model_training": training_result}
+
+
+@router.post("/syncWebEvents")
+def sync_web_events(request: WebIngestionRequest, db: Session = Depends(get_db)):
+    try:
+        return ingest_web_events(db, request)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.post("/uploadEventImage", status_code=201)

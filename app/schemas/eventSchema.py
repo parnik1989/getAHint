@@ -13,6 +13,14 @@ class EventCreate(BaseModel):
     source_type: str | None = None
 
 
+class WebIngestionRequest(BaseModel):
+    queries: list[str] | None = None
+    source_urls: list[str] | None = None
+    city: str = "Hyderabad"
+    max_search_results: int = 10
+    train_model: bool = True
+
+
 class Event(BaseModel):
     id: int
     event_name: str
