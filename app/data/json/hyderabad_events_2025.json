@@ -1,0 +1,182 @@
+[
+  {
+    "event_id": 1,
+    "event_name": "Ganesh Chaturthi Celebration",
+    "event_description": "Traditional Hindu festival celebrating Lord Ganesh with cultural programs, music, dance, and processions throughout Hyderabad",
+    "event_date": "2025-09-07",
+    "event_address": "Various Pandals Across Hyderabad",
+    "event_category": "Cultural Festival",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 2,
+    "event_name": "Bonalu Festival",
+    "event_description": "Annual Bonalu celebration featuring processions, Telangana folk dances, traditional music and offerings at temples",
+    "event_date": "2025-07-15",
+    "event_address": "Ujjaini Mahankali Temple and surrounding areas",
+    "event_category": "Cultural Festival",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 3,
+    "event_name": "Hyderabad Biryani Festival",
+    "event_description": "Celebration of Hyderabadi biryani and local cuisine with food stalls, cooking demonstrations, and cultural performances",
+    "event_date": "2025-10-20",
+    "event_address": "Tank Bund, Hyderabad",
+    "event_category": "Food & Culinary",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 4,
+    "event_name": "Hyderabad Literary Festival",
+    "event_description": "Annual literary festival showcasing authors, poets, and writers with readings, discussions, and book launches",
+    "event_date": "2025-01-15",
+    "event_address": "Ravindra Bharathi Auditorium",
+    "event_category": "Literature & Arts",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 5,
+    "event_name": "Hyderabad International Film Festival",
+    "event_description": "Annual film festival featuring international and Indian films with screenings, seminars, and award ceremonies",
+    "event_date": "2025-08-10",
+    "event_address": "Ravindra Bharathi and various cinemas",
+    "event_category": "Arts & Entertainment",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 6,
+    "event_name": "Diwali Celebration",
+    "event_description": "Festival of lights with cultural programs, fireworks, and celebrations across the city",
+    "event_date": "2025-10-30",
+    "event_address": "Across Hyderabad",
+    "event_category": "Cultural Festival",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 7,
+    "event_name": "Eid ul-Fitr",
+    "event_description": "Islamic festival marking the end of Ramadan with prayers, family gatherings, and traditional feasts",
+    "event_date": "2025-03-30",
+    "event_address": "Mosques and prayer grounds across Hyderabad",
+    "event_category": "Religious Festival",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 8,
+    "event_name": "Eid al-Adha",
+    "event_description": "Islamic festival of sacrifice celebrated with special prayers and community meals",
+    "event_date": "2025-06-07",
+    "event_address": "Mosques and prayer grounds across Hyderabad",
+    "event_category": "Religious Festival",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 9,
+    "event_name": "Telangana Formation Day",
+    "event_description": "Celebration of Telangana statehood with government programs, cultural events, and patriotic gatherings",
+    "event_date": "2025-06-02",
+    "event_address": "Hyderabad secretariat and public grounds",
+    "event_category": "National Holiday",
+    "event_type": "celebration"
+  },
+  {
+    "event_id": 10,
+    "event_name": "Hyderabad Sailing Week",
+    "event_description": "Water sports event featuring sailing races, water activities, and entertainment at Hussain Sagar lake",
+    "event_date": "2025-11-20",
+    "event_address": "Hussain Sagar Lake",
+    "event_category": "Sports & Recreation",
+    "event_type": "sports"
+  },
+  {
+    "event_id": 11,
+    "event_name": "Deccan Derby Horse Racing",
+    "event_description": "Annual horse racing event at the Hyderabad Race Club featuring thrilling races and entertainment",
+    "event_date": "2025-02-15",
+    "event_address": "Hyderabad Race Club, Malakpet",
+    "event_category": "Sports",
+    "event_type": "sports"
+  },
+  {
+    "event_id": 12,
+    "event_name": "Art Exhibition - Salar Jung Museum",
+    "event_description": "Special art exhibition showcasing classical and contemporary Indian art with guided tours",
+    "event_date": "2025-05-01",
+    "event_address": "Salar Jung Museum, Osman Sagar Road",
+    "event_category": "Arts & Museums",
+    "event_type": "exhibition"
+  },
+  {
+    "event_id": 13,
+    "event_name": "Charminar Heritage Walk",
+    "event_description": "Guided heritage tour of Charminar monument exploring history, architecture and local culture",
+    "event_date": "2025-03-15",
+    "event_address": "Charminar, Old City Hyderabad",
+    "event_category": "Heritage & Tourism",
+    "event_type": "tour"
+  },
+  {
+    "event_id": 14,
+    "event_name": "Classical Music Concert Series",
+    "event_description": "Series of classical Hindustani and Carnatic music concerts featuring renowned artists",
+    "event_date": "2025-04-10",
+    "event_address": "Ravindra Bharathi Concert Hall",
+    "event_category": "Music & Performance",
+    "event_type": "concert"
+  },
+  {
+    "event_id": 15,
+    "event_name": "Golconda Music and Dance Festival",
+    "event_description": "Festival celebrating traditional music and dance forms with performances at Golconda Fort",
+    "event_date": "2025-12-05",
+    "event_address": "Golconda Fort",
+    "event_category": "Arts & Culture",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 16,
+    "event_name": "Tech Summit Hyderabad",
+    "event_description": "Annual technology conference with industry leaders, startup pitches, and innovation showcases",
+    "event_date": "2025-09-20",
+    "event_address": "HITEC City Convention Center",
+    "event_category": "Business & Technology",
+    "event_type": "conference"
+  },
+  {
+    "event_id": 17,
+    "event_name": "Hyderabad Marathon 2025",
+    "event_description": "Annual marathon event promoting fitness and health awareness with 5K and 10K races",
+    "event_date": "2025-11-10",
+    "event_address": "Tank Bund to NTR Gardens",
+    "event_category": "Sports & Fitness",
+    "event_type": "sports"
+  },
+  {
+    "event_id": 18,
+    "event_name": "Foodie Festival Hyderabad",
+    "event_description": "Multi-day food festival featuring local and international cuisines, cooking shows, and food workshops",
+    "event_date": "2025-07-25",
+    "event_address": "Shilpakala Vedika",
+    "event_category": "Food & Culinary",
+    "event_type": "festival"
+  },
+  {
+    "event_id": 19,
+    "event_name": "Numaish Exhibition",
+    "event_description": "Annual consumer products exhibition showcasing local and national brands with entertainment programs",
+    "event_date": "2025-01-26",
+    "event_address": "Hyderabad Exhibition Grounds",
+    "event_category": "Trade Show & Exhibition",
+    "event_type": "exhibition"
+  },
+  {
+    "event_id": 20,
+    "event_name": "Independence Day Celebration",
+    "event_description": "National holiday celebration with flag hoisting, cultural programs, and patriotic events",
+    "event_date": "2025-08-15",
+    "event_address": "Hyderabad secretariat and public grounds",
+    "event_category": "National Holiday",
+    "event_type": "celebration"
+  }
+]

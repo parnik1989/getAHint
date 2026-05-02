@@ -16,13 +16,34 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-3. Visit http://localhost:8000/docs for interactive API docs
+3. Visit http://localhost:8000/docs for interactive Swagger API docs
+
+Hosted Railway app
+
+- Swagger UI: `https://<your-railway-domain>/docs`
+- OpenAPI JSON: `https://<your-railway-domain>/openapi.json`
+- Telegram status: `https://<your-railway-domain>/telegramService/telegram/status`
+
+Telegram setup
+
+Set these Railway variables:
+
+```bash
+TELEGRAM_BOT_TOKEN=<your bot token from BotFather>
+PUBLIC_BASE_URL=https://<your-railway-domain>
+```
+
+After deployment, register the Telegram webhook once:
+
+```bash
+curl -X POST "https://<your-railway-domain>/telegramService/telegram/setWebhook"
+```
 
 Recommendations
 
-- Endpoint: `GET /api/v1/recommendations?movie_id=<id>&n=<count>`
+- Endpoint: "GET /eventService/getAllEventData"
 - Example:
 
 ```bash
-curl "http://localhost:8000/api/v1/recommendations?movie_id=3&n=5"
+curl "http://localhost:8000/eventService/getAllEventData"
 ```
