@@ -5,6 +5,8 @@ import joblib
 import os
 from datetime import datetime
 from app.core.paths import INTENT_MODEL_PATH, ML_DIR
+from app.db.schema import ensure_database_schema
+from app.db.session import engine
 from app.db.session import SessionLocal
 from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_by_embedding
 
@@ -145,6 +147,7 @@ def train_generic_model():
     Backfill per-event database embeddings for vector search.
     """
     print("\nBackfilling event embeddings in the database")
+    ensure_database_schema(engine)
     db = SessionLocal()
     try:
         stats = backfill_event_embeddings(db)

@@ -10,9 +10,10 @@ def ensure_database_schema(engine):
     with engine.begin() as connection:
         columns = {column["name"] for column in inspect(connection).get_columns("events")}
 
+        if "embedding_json" not in columns:
+            connection.execute(text("ALTER TABLE events ADD COLUMN embedding_json TEXT"))
+
         if dialect_name == "postgresql":
             connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             if "event_embedding" not in columns:
                 connection.execute(text("ALTER TABLE events ADD COLUMN event_embedding vector(384)"))
-        elif "embedding_json" not in columns:
-            connection.execute(text("ALTER TABLE events ADD COLUMN embedding_json TEXT"))
