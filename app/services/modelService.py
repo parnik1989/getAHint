@@ -4,11 +4,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression 
 import joblib
-import json
 import os
 from sentence_transformers import SentenceTransformer
 from datetime import date, datetime
-from app.core.paths import DATA_DIR, EVENT_MODEL_PATH, INTENT_MODEL_PATH, ML_DIR, TRAINING_METADATA_PATH
+from app.core.paths import EVENT_MODEL_PATH, INTENT_MODEL_PATH, ML_DIR, TRAINING_METADATA_PATH
 from app.services.event_service import consolidateAllEventsFromDataStore
 
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
@@ -128,135 +127,6 @@ def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
         )
     return "\n".join(lines)
 
-def discover_text_columns(df):
-    """Automatically discover text columns suitable for semantic search"""
-    text_candidates = []
-    for col in df.columns:
-        print(f"  Checking column: {col} (dtype: {df[col].dtype})")
-        if df[col].dtype == 'str' or df[col].dtype == 'int64' or df[col].dtype == 'object' :
-            # Check if column contains meaningful text
-            # Calculate average text length across multiple rows
-            text_lengths = df[col].astype(str).str.len()
-            avg_length = text_lengths.mean()
-            non_empty_count = (text_lengths > 0).sum()
-            
-            # Accept if average text is substantial OR mostly non-empty
-            #if avg_length >= 5 or (non_empty_count / len(df) > 0.7 if len(df) > 0 else False):
-            text_candidates.append(col)
-    return text_candidates
-
-def discover_data_files(data_dir):
-    """Automatically discover all data files in the directory"""
-    discovered_files = []
-    if not os.path.isdir(data_dir):
-        print(f"Data directory not found: {data_dir}")
-        return discovered_files
-    
-    for fname in os.listdir(data_dir):
-        if fname.lower().endswith((".json", ".txt", ".csv")):
-            path = os.path.join(data_dir, fname)
-            if os.path.isfile(path):
-                discovered_files.append((fname, path))
-    
-    return discovered_files
-
-def load_data_file(file_path, file_name):
-    """Intelligently load data from various file formats"""
-    try:
-        if file_name.lower().endswith(".json"):
-            try:
-                df = pd.read_json(file_path)
-            except ValueError:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                df = pd.DataFrame(data) if isinstance(data, list) else pd.DataFrame([data])
-        
-        elif file_name.lower().endswith(".csv"):
-            df = pd.read_csv(file_path)
-        
-        elif file_name.lower().endswith(".txt"):
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            
-            data_rows = []
-            
-            # Check if it's pipe-delimited format (simple flat format)
-            if "|" in content:
-                lines = content.strip().split("\n")
-                for line in lines:
-                    line = line.strip()
-                    if not line or line.startswith("#") or "==" in line:
-                        continue
-                    parts = [p.strip() for p in line.split("|")]
-                    data_rows.append({"text": " ".join(parts)})
-            else:
-                # Parse structured format with key-value pairs (Date:, Location:, Description:, etc)
-                lines = content.split("\n")
-                current_record = {}
-                
-                for line in lines:
-                    line = line.rstrip()
-                    
-                    # Skip headers and empty section markers
-                    if "==" in line or (line.upper() == line and len(line) > 2):
-                        if current_record and "text" in current_record:
-                            data_rows.append(current_record)
-                            current_record = {}
-                        continue
-                    
-                    # Check for key-value pairs (Date:, Location:, Description:, etc)
-                    if ":" in line and len(line.split(":")) == 2:
-                        key, value = line.split(":", 1)
-                        key = key.strip().lower().replace(" ", "_")
-                        value = value.strip()
-                        
-                        if key == "description" or len(value) > 10:
-                            current_record[key] = value
-                    
-                    # If line is just text (no colon, not empty)
-                    elif line.strip() and ":" not in line:
-                        # First substantial line becomes title/name
-                        if "name" not in current_record and len(line.strip()) > 3:
-                            current_record["name"] = line.strip()
-                
-                # Add final record
-                if current_record:
-                    data_rows.append(current_record)
-                
-                # Create unified "text" column from all fields for embeddings
-                for row in data_rows:
-                    text_parts = []
-                    for key in ["name", "description", "location", "date", "duration"]:
-                        if key in row:
-                            text_parts.append(str(row[key]))
-                    row["text"] = " | ".join(text_parts)
-            
-            df = pd.DataFrame(data_rows) if data_rows else pd.DataFrame()
-        
-        else:
-            return None
-        
-        if df.empty:
-            return None
-        
-        return df
-    
-    except Exception as e:
-        print(f"Error loading {file_name}: {e}")
-        return None
-
-def select_best_text_column(df):
-    """Select the most suitable text column for embeddings"""
-    text_candidates = discover_text_columns(df)
-    print(f"  Found text candidates: {text_candidates}")
-    if not text_candidates:
-        return None
-    
-    # Prioritize columns with longer average text
-    best_col = max(text_candidates, 
-                   key=lambda col: df[col].astype(str).str.len().mean())
-    return best_col
-
 def intent_train_model():
     """Train generic intent classification model"""
     # Universal training data that works for any content type
@@ -340,10 +210,10 @@ def intent_train_model():
 
 def trainEventModelService(data_source: str = None):
     """
-    Generic model training that automatically discovers and trains on all available data
+    Train the intent classifier and event retrieval model from database records.
     
     Args:
-        data_source: Optional specific data source/club name (for backward compatibility)
+        data_source: Deprecated; kept for backward-compatible routes.
     
     Returns:
         Training status and statistics
@@ -372,18 +242,15 @@ def trainEventModelService(data_source: str = None):
 
 def train_generic_model():
     """
-    Train the event retrieval model on normalized event records.
+    Train the event retrieval model on normalized event records from the database.
     """
-    data_dir = DATA_DIR
-    discovered_files = discover_data_files(data_dir)
-
-    print(f"\nPreparing normalized event data from: {data_dir}")
+    print("\nPreparing normalized event data from the database")
     combined_df = _prepare_event_dataframe()
     total_records = len(combined_df)
     print(f"Total records to train on: {total_records}")
 
     if total_records == 0:
-        return {"files_loaded": 0, "total_records": 0, "error": "No event records to train"}
+        return {"total_records": 0, "error": "No event records to train"}
 
     combined_texts = combined_df["search_text"].astype(str).tolist()
 
@@ -400,8 +267,7 @@ def train_generic_model():
     metadata = {
         "training_date": datetime.now().isoformat(),
         "total_records": total_records,
-        "total_files": len(discovered_files),
-        "files": [file_name for file_name, _ in discovered_files],
+        "source": "database",
         "columns": list(combined_df.columns),
         "embedding_model": EMBEDDING_MODEL_NAME,
         "total_embeddings": len(embeddings),
@@ -411,7 +277,7 @@ def train_generic_model():
     print("\n✓ Model saved successfully!")
 
     return {
-        "files_loaded": len(discovered_files),
+        "source": "database",
         "total_records": total_records,
         "embeddings_generated": len(embeddings),
         "columns": list(combined_df.columns),

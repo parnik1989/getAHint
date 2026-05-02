@@ -7,15 +7,13 @@ router = APIRouter()
 @router.get("/trainEventModel/{data_source}")
 def train_event_model(data_source: str = None):
     """
-    Generic model training endpoint
-    
-    - Automatically discovers all data files in app/data/json/
-    - Supports any data type (events, products, content, etc.)
-    - Works with JSON, CSV, and TXT files
+    Model training endpoint.
+
+    - Reads event records from the database
     - Trains semantic embedding model and intent classifier
     
     Optional Parameters:
-        data_source: Specific data source/club name (for backward compatibility, not required)
+        data_source: Deprecated; kept for backward compatibility.
     
     Returns:
         Training status and comprehensive statistics

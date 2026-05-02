@@ -67,10 +67,6 @@ You can now deploy from any cloud provider:
   5. Add a variable named `DATABASE_URL`.
   6. Set it to reference the Postgres service connection URL, usually available from Railway's variable picker.
 - The app creates the `events` table automatically on startup.
-- Seed your current bundled JSON events into Postgres once after deployment:
-  ```bash
-  curl -X POST "https://your-app.up.railway.app/eventService/seedEventsFromFiles"
-  ```
 - Add or update a single event in Postgres:
   ```bash
   curl -X POST "https://your-app.up.railway.app/eventService/events" \
@@ -86,7 +82,7 @@ You can now deploy from any cloud provider:
   ```
 - Add or update many events at once:
   ```bash
-  curl -X POST "https://your-app.up.railway.app/eventService/events/bulk" \
+  curl -X POST "https://your-app.up.railway.app/eventService/ingestEvents" \
     -H "Content-Type: application/json" \
     -d '[
       {
@@ -99,7 +95,7 @@ You can now deploy from any cloud provider:
       }
     ]'
   ```
-- Retrain the search model after seeding or adding events:
+- Retrain the search model after adding events:
   ```bash
   curl -X GET "https://your-app.up.railway.app/modelService/trainEventModel"
   ```
