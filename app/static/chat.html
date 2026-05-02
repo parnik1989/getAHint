@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>getAHint Chat</title>
+    <link rel="stylesheet" href="/static/chat.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="chat-panel" aria-label="Event chat">
+        <header class="chat-header">
+          <div>
+            <h1>getAHint</h1>
+            <p>Ask about events in Hyderabad</p>
+          </div>
+          <a href="/docs" class="docs-link">API Docs</a>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite">
+          <article class="message assistant">
+            <div class="bubble">
+              Tell me what kind of event you are looking for. Try “Bonalu festival”, “food festival”, or “classical dance”.
+            </div>
+          </article>
+        </div>
+
+        <form id="chat-form" class="composer">
+          <input
+            id="message-input"
+            name="message"
+            type="text"
+            autocomplete="off"
+            placeholder="Search for events..."
+            aria-label="Message"
+            required
+          />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/static/chat.js"></script>
+  </body>
+</html>

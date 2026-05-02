@@ -21,6 +21,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Hosted Railway app
 
 - Swagger UI: `https://<your-railway-domain>/docs`
+- Chat UI: `https://<your-railway-domain>/chat`
 - OpenAPI JSON: `https://<your-railway-domain>/openapi.json`
 - Telegram status: `https://<your-railway-domain>/telegramService/telegram/status`
 

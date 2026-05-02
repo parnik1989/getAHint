@@ -142,6 +142,7 @@ You can now deploy from any cloud provider:
   - `TELEGRAM_BOT_TOKEN`: your token from BotFather.
   - `PUBLIC_BASE_URL`: your Railway app URL, for example `https://your-app.up.railway.app`.
 - Open Swagger UI at `https://your-app.up.railway.app/docs`.
+- Open the chat UI at `https://your-app.up.railway.app/chat`.
 - Check Telegram config at `https://your-app.up.railway.app/telegramService/telegram/status`.
 - Register the Telegram webhook after deployment:
   ```bash
