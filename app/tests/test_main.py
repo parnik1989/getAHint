@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.main import app
+from app.services.vector_service import filter_and_rank_results
 
 client = TestClient(app)
 
@@ -40,3 +41,28 @@ def test_get_all_event_data():
     assert all("event_id" not in event for event in events)
     assert all(event["event_date"].count("-") == 2 for event in events)
     _delete_test_event()
+
+
+def test_specific_query_filters_unrelated_vector_neighbors():
+    results = [
+        {
+            "id": 1,
+            "event_name": "Bonalu Festival",
+            "event_description": "Telangana temple celebration",
+            "event_date": "2026-07-01",
+            "event_address": "Hyderabad",
+            "similarity_score": 0.72,
+        },
+        {
+            "id": 2,
+            "event_name": "Hard Rock Cafe Night",
+            "event_description": "Live music",
+            "event_date": "2026-07-02",
+            "event_address": "Hyderabad",
+            "similarity_score": 0.34,
+        },
+    ]
+
+    filtered, _, _ = filter_and_rank_results(results, "bonalu festival")
+
+    assert [event["event_name"] for event in filtered] == ["Bonalu Festival"]

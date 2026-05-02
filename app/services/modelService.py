@@ -162,8 +162,9 @@ def testExistingModel(query: str, top_k: int = 5):
     try:
         db = SessionLocal()
         try:
-            results = search_events_by_embedding(db, query, top_k=top_k)
+            results = search_events_by_embedding(db, query, top_k=max(top_k * 4, 10))
             results, upcoming_only, fallback_to_past = filter_and_rank_results(results, query)
+            results = results[:top_k]
         finally:
             db.close()
 

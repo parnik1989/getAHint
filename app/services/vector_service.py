@@ -1,5 +1,6 @@
 import json
 import math
+import re
 from datetime import date, datetime
 from functools import lru_cache
 from typing import Any, Dict, List
@@ -14,6 +15,31 @@ from app.models.eventModel import Event
 
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIMENSIONS = 384
+MIN_SIMILARITY_SCORE = 0.25
+RELATIVE_SCORE_RATIO = 0.72
+GENERIC_QUERY_TERMS = {
+    "a",
+    "about",
+    "any",
+    "at",
+    "event",
+    "events",
+    "festival",
+    "festivals",
+    "find",
+    "for",
+    "happening",
+    "hyderabad",
+    "in",
+    "me",
+    "near",
+    "of",
+    "on",
+    "show",
+    "the",
+    "to",
+    "upcoming",
+}
 
 
 @lru_cache(maxsize=2)
@@ -192,6 +218,7 @@ def search_events_by_embedding(db: Session, query: str, top_k: int = 5) -> List[
 
 
 def filter_and_rank_results(results: List[Dict[str, Any]], query: str) -> tuple[List[Dict[str, Any]], bool, bool]:
+    results = _filter_relevant_results(results, query)
     today = date.today()
     wants_upcoming = _is_upcoming_query(query)
     fallback_to_past = False
@@ -212,6 +239,31 @@ def filter_and_rank_results(results: List[Dict[str, Any]], query: str) -> tuple[
             fallback_to_past = True
 
     return results, bool(wants_upcoming) and not fallback_to_past, fallback_to_past
+
+
+def _filter_relevant_results(results: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
+    if not results:
+        return []
+
+    best_score = max(result["similarity_score"] for result in results)
+    threshold = max(MIN_SIMILARITY_SCORE, best_score * RELATIVE_SCORE_RATIO)
+    score_filtered = [result for result in results if result["similarity_score"] >= threshold]
+
+    query_terms = _meaningful_terms(query)
+    if len(query_terms) < 2:
+        return score_filtered
+
+    required_overlap = min(2, len(query_terms))
+    return [
+        result
+        for result in score_filtered
+        if len(query_terms & _meaningful_terms(_event_search_text(result))) >= required_overlap
+    ]
+
+
+def _meaningful_terms(text_value: str) -> set[str]:
+    terms = set(re.findall(r"[a-z0-9]+", text_value.lower()))
+    return {term for term in terms if len(term) > 2 and term not in GENERIC_QUERY_TERMS}
 
 
 def _is_upcoming_query(query):
