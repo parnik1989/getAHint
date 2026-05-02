@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from app.models.eventModel import Event
 import re
 from datetime import datetime
+from app.core.paths import DATA_DIR
 
 
 
@@ -58,7 +59,7 @@ def _normalize_event_record(record: Dict[str, Any]) -> Optional[Event]:
 
 
 def consolidateAllEventsFromDataStore() -> List[Event]:
-    json_dir = "app/data/json"
+    json_dir = DATA_DIR
     all_events: List[Event] = []
 
     if not os.path.isdir(json_dir):
@@ -113,7 +114,7 @@ def process_image_file(file_bytes: bytes, filename: str) -> List[Event]:
 
 
 def saveEventsToDatastore(extractedText: str, base_name: str):
-    save_dir = "app/data/json"   # adjust this path to your project structure
+    save_dir = DATA_DIR
     os.makedirs(save_dir, exist_ok=True)
     file_path = os.path.join(save_dir, f"{base_name}.txt")
     # Write JSON file

@@ -15,7 +15,7 @@ RUN pip install --user --no-cache-dir --extra-index-url https://download.pytorch
 # Runtime stage
 FROM python:3.11-slim
 
-WORKDIR /
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -36,7 +36,7 @@ ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONPATH=/app:$PYTHONPATH
 
 # Copy application code
-COPY --chown=appuser:appuser . /app
+COPY --chown=appuser:appuser . .
 
 # Switch to non-root user
 USER appuser
@@ -48,4 +48,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:8080/ || exit 1
 
 # Run application
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

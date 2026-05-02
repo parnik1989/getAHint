@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 import os
 import requests
+from app.core.paths import INTENT_MODEL_PATH
 from app.services.modelService import testExistingModel
 import joblib
 
@@ -63,7 +64,7 @@ async def telegram_webhook(request: Request):
     chat_id = data["message"]["chat"]["id"]
     user_text = data["message"]["text"]
     print(chat_id, user_text)
-    pipeline = joblib.load("app/ml/intentModel.pkl")
+    pipeline = joblib.load(INTENT_MODEL_PATH)
     intent = pipeline.predict([user_text])[0]  
     # Step 2: Respond based on intent
     if intent == "greeting":

@@ -8,11 +8,9 @@ import json
 import os
 from sentence_transformers import SentenceTransformer
 from datetime import date, datetime
+from app.core.paths import DATA_DIR, EVENT_MODEL_PATH, INTENT_MODEL_PATH, ML_DIR, TRAINING_METADATA_PATH
 from app.services.event_service import consolidateAllEventsFromDataStore
 
-EVENT_MODEL_PATH = "app/ml/eventModel.pkl"
-INTENT_MODEL_PATH = "app/ml/intentModel.pkl"
-TRAINING_METADATA_PATH = "app/ml/training_metadata.pkl"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 
@@ -335,7 +333,7 @@ def intent_train_model():
     pipeline.fit(X_train, y_train)
 
     # Save model
-    os.makedirs("app/ml", exist_ok=True)
+    os.makedirs(ML_DIR, exist_ok=True)
     joblib.dump(pipeline, INTENT_MODEL_PATH)
     print("Intent model training completed.")
     return pipeline
@@ -376,7 +374,7 @@ def train_generic_model():
     """
     Train the event retrieval model on normalized event records.
     """
-    data_dir = "app/data/json"
+    data_dir = DATA_DIR
     discovered_files = discover_data_files(data_dir)
 
     print(f"\nPreparing normalized event data from: {data_dir}")
@@ -396,7 +394,7 @@ def train_generic_model():
     embeddings = model.encode(combined_texts, show_progress_bar=True)
 
     print("Saving trained model...")
-    os.makedirs("app/ml", exist_ok=True)
+    os.makedirs(ML_DIR, exist_ok=True)
     joblib.dump((EMBEDDING_MODEL_NAME, embeddings, combined_df), EVENT_MODEL_PATH)
 
     metadata = {
