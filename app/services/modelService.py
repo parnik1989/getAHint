@@ -1,112 +1,12 @@
-import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression 
 import joblib
 import os
-from sentence_transformers import SentenceTransformer
-from datetime import date, datetime
-from app.core.paths import EVENT_MODEL_PATH, INTENT_MODEL_PATH, ML_DIR, TRAINING_METADATA_PATH
-from app.services.event_service import consolidateAllEventsFromDataStore
-
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-
-
-def _model_to_dict(model_instance):
-    if hasattr(model_instance, "model_dump"):
-        return model_instance.model_dump()
-    return model_instance.dict()
-
-
-def _load_embedding_model(allow_download=False):
-    try:
-        return SentenceTransformer(EMBEDDING_MODEL_NAME, local_files_only=True)
-    except Exception:
-        if not allow_download:
-            raise
-        return SentenceTransformer(EMBEDDING_MODEL_NAME)
-
-
-def _parse_event_date(date_value):
-    if date_value is None or pd.isna(date_value):
-        return None
-
-    date_text = str(date_value).strip()
-    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%b %d"):
-        try:
-            parsed_date = datetime.strptime(date_text, date_format).date()
-            if date_format == "%b %d":
-                parsed_date = parsed_date.replace(year=2025)
-            return parsed_date
-        except ValueError:
-            continue
-    return None
-
-
-def _clean_value(value):
-    if value is None or pd.isna(value):
-        return ""
-    return str(value).strip()
-
-
-def _build_event_search_text(row):
-    text_fields = [
-        "event_name",
-        "event_description",
-        "event_date",
-        "event_address",
-        "event_category",
-        "event_type",
-    ]
-    return " | ".join(_clean_value(row.get(field)) for field in text_fields if _clean_value(row.get(field)))
-
-
-def _prepare_event_dataframe():
-    events = consolidateAllEventsFromDataStore()
-    records = []
-
-    for event in events:
-        record = _model_to_dict(event)
-        parsed_date = _parse_event_date(record.get("event_date"))
-        record["event_date"] = parsed_date.isoformat() if parsed_date else _clean_value(record.get("event_date"))
-        record["search_text"] = _build_event_search_text(record)
-        records.append(record)
-
-    df = pd.DataFrame(records)
-    if df.empty:
-        return df
-
-    df = df[df["search_text"].astype(str).str.len() > 0].copy()
-    df["event_date_dt"] = pd.to_datetime(df["event_date"], errors="coerce")
-    return df
-
-
-def _is_upcoming_query(query):
-    query_text = query.lower()
-    upcoming_terms = (
-        "upcoming",
-        "coming",
-        "future",
-        "next",
-        "soon",
-        "this week",
-        "this month",
-        "today",
-        "tomorrow",
-    )
-    return any(term in query_text for term in upcoming_terms)
-
-
-def _row_to_event_result(row):
-    return {
-        "id": int(row["id"]) if pd.notna(row.get("id")) else None,
-        "event_name": _clean_value(row.get("event_name")),
-        "event_description": _clean_value(row.get("event_description")),
-        "event_date": _clean_value(row.get("event_date")),
-        "event_address": _clean_value(row.get("event_address")),
-        "similarity_score": round(float(row.get("similarity_score", 0)), 4),
-    }
+from datetime import datetime
+from app.core.paths import INTENT_MODEL_PATH, ML_DIR
+from app.db.session import SessionLocal
+from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_by_embedding
 
 
 def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
@@ -242,87 +142,38 @@ def trainEventModelService(data_source: str = None):
 
 def train_generic_model():
     """
-    Train the event retrieval model on normalized event records from the database.
+    Backfill per-event database embeddings for vector search.
     """
-    print("\nPreparing normalized event data from the database")
-    combined_df = _prepare_event_dataframe()
-    total_records = len(combined_df)
-    print(f"Total records to train on: {total_records}")
-
-    if total_records == 0:
-        return {"total_records": 0, "error": "No event records to train"}
-
-    combined_texts = combined_df["search_text"].astype(str).tolist()
-
-    print(f"\nTraining semantic embedding model on {total_records} records...")
-    print("Generating embeddings (this may take a moment)...")
-
-    model = _load_embedding_model(allow_download=True)
-    embeddings = model.encode(combined_texts, show_progress_bar=True)
-
-    print("Saving trained model...")
-    os.makedirs(ML_DIR, exist_ok=True)
-    joblib.dump((EMBEDDING_MODEL_NAME, embeddings, combined_df), EVENT_MODEL_PATH)
-
-    metadata = {
-        "training_date": datetime.now().isoformat(),
-        "total_records": total_records,
-        "source": "database",
-        "columns": list(combined_df.columns),
-        "embedding_model": EMBEDDING_MODEL_NAME,
-        "total_embeddings": len(embeddings),
-    }
-    joblib.dump(metadata, TRAINING_METADATA_PATH)
-
-    print("\n✓ Model saved successfully!")
-
-    return {
-        "source": "database",
-        "total_records": total_records,
-        "embeddings_generated": len(embeddings),
-        "columns": list(combined_df.columns),
-        "training_completed": True
-    }
+    print("\nBackfilling event embeddings in the database")
+    db = SessionLocal()
+    try:
+        stats = backfill_event_embeddings(db)
+        return {**stats, "source": "database_vectors", "training_completed": True}
+    finally:
+        db.close()
 
 def testExistingModel(query: str, top_k: int = 5):
     """
     Find the most relevant trained events for a user query.
     """
     try:
-        model_ref, embeddings, df = joblib.load(EVENT_MODEL_PATH)
-        model = _load_embedding_model(allow_download=True) if isinstance(model_ref, str) else model_ref
-        print("Model loaded successfully.")
-
-        query_vec = model.encode([query])
-        sim_scores = cosine_similarity(query_vec, embeddings)
-        ranked_df = df.copy()
-        ranked_df["similarity_score"] = sim_scores[0]
-        ranked_df = ranked_df.sort_values("similarity_score", ascending=False)
-
-        today = pd.Timestamp(date.today())
-        wants_upcoming = _is_upcoming_query(query)
-        fallback_to_past = False
-
-        if wants_upcoming and "event_date_dt" in ranked_df.columns:
-            upcoming_df = ranked_df[ranked_df["event_date_dt"].notna() & (ranked_df["event_date_dt"] >= today)]
-            if not upcoming_df.empty:
-                ranked_df = upcoming_df.sort_values(["event_date_dt", "similarity_score"], ascending=[True, False])
-            else:
-                fallback_to_past = True
-
-        top_matches = ranked_df.head(top_k)
-        results = [_row_to_event_result(row) for _, row in top_matches.iterrows()]
+        db = SessionLocal()
+        try:
+            results = search_events_by_embedding(db, query, top_k=top_k)
+            results, upcoming_only, fallback_to_past = filter_and_rank_results(results, query)
+        finally:
+            db.close()
 
         return {
             "query": query,
             "answer": format_event_answer(
                 results,
-                upcoming_only=not fallback_to_past and bool(wants_upcoming),
+                upcoming_only=upcoming_only,
                 fallback_to_past=fallback_to_past,
             ),
             "results": results,
             "total_matches": len(results),
-            "upcoming_only": not fallback_to_past and bool(wants_upcoming),
+            "upcoming_only": upcoming_only,
             "fallback_to_past": fallback_to_past,
         }
 

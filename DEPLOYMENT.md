@@ -67,6 +67,7 @@ You can now deploy from any cloud provider:
   5. Add a variable named `DATABASE_URL`.
   6. Set it to reference the Postgres service connection URL, usually available from Railway's variable picker.
 - The app creates the `events` table automatically on startup.
+- On Railway Postgres, the app enables `pgvector` with `CREATE EXTENSION IF NOT EXISTS vector` and adds an `event_embedding vector(384)` column automatically.
 - Add or update a single event in Postgres:
   ```bash
   curl -X POST "https://your-app.up.railway.app/eventService/events" \
@@ -80,6 +81,7 @@ You can now deploy from any cloud provider:
       "source_type": "api"
     }'
   ```
+  By default this also generates and stores the event embedding so the new event is searchable immediately.
 - Add or update many events at once:
   ```bash
   curl -X POST "https://your-app.up.railway.app/eventService/ingestEvents" \
@@ -95,7 +97,12 @@ You can now deploy from any cloud provider:
       }
     ]'
   ```
-- Retrain the search model after adding events:
+- Bulk ingestion also stores embeddings by default. For very large imports, you can skip per-row embedding generation and backfill once afterward:
+  ```bash
+  curl -X POST "https://your-app.up.railway.app/eventService/ingestEvents?train_model=false" \
+    -H "Content-Type: application/json" \
+    -d '[...]'
+  ```
   ```bash
   curl -X GET "https://your-app.up.railway.app/modelService/trainEventModel"
   ```

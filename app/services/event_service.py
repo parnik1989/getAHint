@@ -7,6 +7,7 @@ from datetime import datetime
 from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.schemas.eventSchema import EventCreate
+from app.services.vector_service import store_event_embedding
 
 
 def _normalize_date(date_value: Any) -> str:
@@ -37,7 +38,7 @@ def get_events_from_db(db: Session) -> List[Event]:
     return [_event_record_to_schema(record) for record in records]
 
 
-def upsert_event(db: Session, event: EventCreate) -> Event:
+def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True) -> Event:
     event_date = _normalize_date(event.event_date)
     existing = (
         db.query(EventRecord)
@@ -68,12 +69,14 @@ def upsert_event(db: Session, event: EventCreate) -> Event:
 
     db.commit()
     db.refresh(record)
+    if update_embedding:
+        store_event_embedding(db, record.id)
     return _event_record_to_schema(record)
 
 
-def upsert_events(db: Session, events: List[EventCreate]) -> dict:
+def upsert_events(db: Session, events: List[EventCreate], update_embeddings: bool = True) -> dict:
     for event in events:
-        upsert_event(db, event)
+        upsert_event(db, event, update_embedding=update_embeddings)
     return {"upserted": len(events)}
 
 
@@ -85,7 +88,7 @@ def consolidateAllEventsFromDataStore() -> List[Event]:
         db.close()
 
 
-def process_image_file(db: Session, file_bytes: bytes, filename: str) -> List[Event]:
+def process_image_file(db: Session, file_bytes: bytes, filename: str, update_embeddings: bool = True) -> List[Event]:
     """
     Process an uploaded image and ingest extracted events directly into the database.
     """
@@ -97,7 +100,7 @@ def process_image_file(db: Session, file_bytes: bytes, filename: str) -> List[Ev
         text = pytesseract.image_to_string(img)
         print(f"Extracted text from uploaded file {filename}: {text}")
         events = extract_events_from_text(text, source_name=filename)
-        return [upsert_event(db, event) for event in events]
+        return [upsert_event(db, event, update_embedding=update_embeddings) for event in events]
     except Exception as e:
         print(f"Failed to process uploaded image {filename}: {e}")
         raise

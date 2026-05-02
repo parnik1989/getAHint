@@ -18,7 +18,7 @@ def _delete_test_event():
 def test_get_all_event_data():
     _delete_test_event()
     created = client.post(
-        "/eventService/events",
+        "/eventService/events?train_model=false",
         json={
             "event_name": "Test Event",
             "event_description": "Temporary event for API read verification.",
@@ -29,6 +29,7 @@ def test_get_all_event_data():
         },
     )
     assert created.status_code == 201
+    assert created.json()["model_training"] is None
 
     r = client.get("/eventService/getAllEventData")
     assert r.status_code == 200

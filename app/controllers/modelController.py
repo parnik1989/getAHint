@@ -10,7 +10,8 @@ def train_event_model(data_source: str = None):
     Model training endpoint.
 
     - Reads event records from the database
-    - Trains semantic embedding model and intent classifier
+    - Backfills event vector embeddings for search
+    - Trains the lightweight intent classifier
     
     Optional Parameters:
         data_source: Deprecated; kept for backward compatibility.

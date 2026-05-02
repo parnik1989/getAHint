@@ -21,5 +21,6 @@ class EventRecord(Base):
     event_address = Column(String(500), nullable=False)
     source_name = Column(String(255), nullable=True)
     source_type = Column(String(50), nullable=True)
+    embedding_json = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
