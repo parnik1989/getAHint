@@ -48,4 +48,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:8080/ || exit 1
 
 # Run application
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "python3 -m venv .venv && . .venv/bin/activate && pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8080"]
