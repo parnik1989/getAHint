@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 def generate_event_answer(query: str, results: List[Dict[str, Any]], upcoming_only: bool = True) -> str:
     if not results:
-        return "I could not find matching upcoming events in the available data."
+        return "I could not find any matching upcoming events in my knowledge. would you like to search anything else ?"
 
     category_groups = _category_groups(results)
     if len(category_groups) == 1:
