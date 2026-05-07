@@ -14,8 +14,19 @@
             <h1>getAHint</h1>
             <p>Ask about events in Hyderabad</p>
           </div>
-          <a href="/docs" class="docs-link">API Docs</a>
+          <div class="header-actions">
+            <span id="auth-status" class="auth-status">Guest mode</span>
+            <button id="auth-toggle" class="link-button" type="button">Login</button>
+            <a href="/docs" class="docs-link">API Docs</a>
+          </div>
         </header>
+
+        <form id="auth-form" class="auth-form hidden">
+          <input id="auth-username" name="username" type="text" autocomplete="username" placeholder="Username" />
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" placeholder="Password" />
+          <button type="submit">Login</button>
+          <button id="register-button" type="button">Register</button>
+        </form>
 
         <div id="messages" class="messages" aria-live="polite">
           <article class="message assistant">

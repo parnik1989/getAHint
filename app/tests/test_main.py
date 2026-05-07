@@ -103,6 +103,52 @@ def test_records_event_interaction():
     _delete_test_event()
 
 
+def test_register_login_and_authenticated_personalization():
+    _delete_test_event()
+    username = "authuser"
+    password = "secret123"
+    client.post("/auth/register", json={"username": username, "password": password})
+    login = client.post("/auth/login", json={"username": username, "password": password})
+
+    assert login.status_code == 200
+    token = login.json()["token"]
+
+    created = client.post(
+        "/eventService/events?update_embeddings=false",
+        json={
+            "event_name": "Test Future Science Workshop",
+            "event_description": "AI workshop for product builders.",
+            "event_date": "2999-06-01",
+            "event_address": "Hyderabad",
+            "source_name": "test",
+            "source_type": "api",
+        },
+    )
+    event_id = created.json()["event"]["id"]
+
+    interaction = client.post(
+        "/eventService/events/interactions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "user_id": "ignored-browser-user",
+            "event_id": event_id,
+            "interaction_type": "save",
+            "query": "ai workshops",
+        },
+    )
+    assert interaction.status_code == 201
+
+    response = client.post(
+        "/modelService/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "upcoming workshops", "user_id": "ignored-browser-user"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["personalized"] is True
+    _delete_test_event()
+
+
 def test_chat_response_marks_personalized_after_interaction():
     _delete_test_event()
     created = client.post(
