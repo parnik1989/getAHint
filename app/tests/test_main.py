@@ -2,8 +2,10 @@ from fastapi.testclient import TestClient
 from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.main import app
-from app.services.vector_service import filter_and_rank_results
+from app.schemas.eventSchema import EventCreate
+from app.services.vector_service import filter_and_rank_results, search_events_hybrid
 from app.services.web_ingestion_service import _event_from_serper_result, _extract_events_from_html
+from app.services.event_service import upsert_event
 
 client = TestClient(app)
 
@@ -11,7 +13,7 @@ client = TestClient(app)
 def _delete_test_event():
     db = SessionLocal()
     try:
-        db.query(EventRecord).filter(EventRecord.event_name == "Test Event").delete()
+        db.query(EventRecord).filter(EventRecord.event_name.in_(("Test Event", "Test Future Science Workshop"))).delete()
         db.commit()
     finally:
         db.close()
@@ -69,6 +71,33 @@ def test_specific_query_filters_unrelated_vector_neighbors():
     assert [event["event_name"] for event in filtered] == ["Bonalu Festival"]
 
 
+def test_short_ai_and_plural_terms_match_event_text():
+    _delete_test_event()
+    db = SessionLocal()
+    try:
+        saved = upsert_event(
+            db,
+            EventCreate(
+                event_name="Test Future Science Workshop",
+                event_description="AI workshop for product builders.",
+                event_date="2999-06-01",
+                event_address="Hyderabad",
+                source_name="test",
+                source_type="api",
+            ),
+            update_embedding=False,
+        )
+        db.query(EventRecord).filter(EventRecord.id == saved.id).update({"embedding_json": None})
+        db.commit()
+
+        results = search_events_hybrid(db, "upcoming AI workshops in Hyderabad", top_k=5)
+    finally:
+        db.close()
+        _delete_test_event()
+
+    assert "Test Future Science Workshop" in {result["event_name"] for result in results}
+
+
 def test_extracts_schema_org_event_json_ld():
     html = """
     <html>
@@ -117,3 +146,31 @@ def test_parses_serper_result_into_event_shape():
     assert event.event_date == "2026-07-15"
     assert event.event_address == "Ujjaini Mahankali Temple, Hyderabad"
     assert event.source_type == "web_serper"
+
+
+def test_hybrid_search_uses_latest_database_rows_without_embeddings():
+    _delete_test_event()
+    db = SessionLocal()
+    try:
+        saved = upsert_event(
+            db,
+            EventCreate(
+                event_name="Test Future Science Workshop",
+                event_description="Hands-on science demos for students.",
+                event_date="2999-06-01",
+                event_address="Hyderabad",
+                source_name="test",
+                source_type="api",
+            ),
+            update_embedding=False,
+        )
+        db.query(EventRecord).filter(EventRecord.id == saved.id).update({"embedding_json": None})
+        db.commit()
+
+        results = search_events_hybrid(db, "upcoming science workshop in Hyderabad", top_k=5)
+    finally:
+        db.close()
+        _delete_test_event()
+
+    assert results
+    assert results[0]["event_name"] == "Test Future Science Workshop"

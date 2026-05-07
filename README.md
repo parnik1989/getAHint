@@ -48,3 +48,19 @@ Recommendations
 ```bash
 curl "http://localhost:8000/eventService/getAllEventData"
 ```
+
+Periodic web event sync
+
+Set these variables when you want the service to keep Postgres refreshed automatically:
+
+```bash
+ENABLE_DAILY_WEB_SYNC=true
+WEB_SYNC_RUN_ON_STARTUP=true
+WEB_SYNC_INTERVAL_MINUTES=360
+WEB_SYNC_CITY=Hyderabad
+WEB_SYNC_QUERIES="upcoming cultural events|music events|science events|workshops"
+SERPER_API_KEY=<your serper key>
+DATABASE_URL=<your postgres url>
+```
+
+The chat and `/modelService/testModel/{query}` endpoints search the latest Postgres events directly first, then use stored embeddings when available.

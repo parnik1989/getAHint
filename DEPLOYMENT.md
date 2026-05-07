@@ -122,6 +122,7 @@ You can now deploy from any cloud provider:
       ],
       "max_search_results": 10,
       "include_search_result_snippets": true,
+      "exclude_past_events": true,
       "train_model": true
     }'
   ```
@@ -129,13 +130,16 @@ You can now deploy from any cloud provider:
   - `EVENT_SOURCE_URLS`: comma-separated event listing URLs to check when no URLs are passed.
   - `SERPER_API_KEY`: enables web search for `queries`; without it, only explicit `source_urls` / `EVENT_SOURCE_URLS` are used.
   - `include_search_result_snippets`: request flag that lets the app parse Serper titles/snippets into event rows when pages do not expose clean JSON-LD.
+  - `exclude_past_events`: request flag that keeps periodic ingestion focused on current and upcoming events.
 - Daily web event sync scheduler variables:
   - `ENABLE_DAILY_WEB_SYNC`: set to `true` to run web sync daily.
   - `WEB_SYNC_RUN_AT_UTC`: daily run time in UTC, for example `02:00`.
+  - `WEB_SYNC_INTERVAL_MINUTES`: optional; when set above `0`, syncs every N minutes instead of once per day.
   - `WEB_SYNC_CITY`: defaults to `Hyderabad`.
   - `WEB_SYNC_QUERIES`: pipe-separated queries, for example `upcoming cultural events|music events|science events`.
   - `WEB_SYNC_SOURCE_URLS`: pipe-separated source URLs for the scheduler. The manual endpoint can still use `source_urls`.
   - `WEB_SYNC_MAX_SEARCH_RESULTS`: defaults to `10`.
+  - `WEB_SYNC_EXCLUDE_PAST_EVENTS`: defaults to `true`; prevents old discovered events from being inserted during scheduled sync.
   - `WEB_SYNC_TRAIN_MODEL`: defaults to `true`; stores embeddings during ingestion.
   - `WEB_SYNC_RUN_ON_STARTUP`: optional; set to `true` to run once immediately when the app starts.
 - Add runtime variables in Railway:

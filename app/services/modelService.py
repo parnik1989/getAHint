@@ -8,7 +8,7 @@ from app.core.paths import INTENT_MODEL_PATH, ML_DIR
 from app.db.schema import ensure_database_schema
 from app.db.session import engine
 from app.db.session import SessionLocal
-from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_by_embedding
+from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_hybrid
 
 
 def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
@@ -162,7 +162,7 @@ def testExistingModel(query: str, top_k: int = 5):
     try:
         db = SessionLocal()
         try:
-            results = search_events_by_embedding(db, query, top_k=max(top_k * 4, 10))
+            results = search_events_hybrid(db, query, top_k=max(top_k * 4, 10))
             results, upcoming_only, fallback_to_past = filter_and_rank_results(results, query)
             results = results[:top_k]
         finally:

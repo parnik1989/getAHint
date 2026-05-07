@@ -45,7 +45,7 @@ async def _daily_web_sync_loop():
 
     while True:
         delay_seconds = _seconds_until_next_run()
-        print(f"Next daily web event sync in {round(delay_seconds)} seconds.")
+        print(f"Next web event sync in {round(delay_seconds)} seconds.")
         await asyncio.sleep(delay_seconds)
         await _run_web_sync_in_thread()
 
@@ -72,11 +72,16 @@ def _web_sync_request_from_env() -> WebIngestionRequest:
         source_urls=_split_env_list("WEB_SYNC_SOURCE_URLS"),
         city=os.getenv("WEB_SYNC_CITY", "Hyderabad"),
         max_search_results=_env_int("WEB_SYNC_MAX_SEARCH_RESULTS", default=10),
+        exclude_past_events=_env_bool("WEB_SYNC_EXCLUDE_PAST_EVENTS", default=True),
         train_model=_env_bool("WEB_SYNC_TRAIN_MODEL", default=True),
     )
 
 
 def _seconds_until_next_run() -> float:
+    interval_minutes = _env_int("WEB_SYNC_INTERVAL_MINUTES", default=0)
+    if interval_minutes > 0:
+        return interval_minutes * 60
+
     now = datetime.now(timezone.utc)
     run_time = _parse_run_time(os.getenv("WEB_SYNC_RUN_AT_UTC", "02:00"))
     next_run = datetime.combine(now.date(), run_time, tzinfo=timezone.utc)

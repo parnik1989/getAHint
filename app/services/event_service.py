@@ -3,7 +3,7 @@ from typing import Any, List
 from sqlalchemy.orm import Session
 from app.models.eventModel import Event
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.schemas.eventSchema import EventCreate
@@ -12,11 +12,18 @@ from app.services.vector_service import store_event_embedding
 
 def _normalize_date(date_value: Any) -> str:
     date_text = str(date_value).strip()
-    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%b %d", "%B %d, %Y"):
+    for date_format in ("%Y-%m-%d", "%d-%m-%Y", "%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"):
         try:
             parsed_date = datetime.strptime(date_text, date_format)
-            if date_format == "%b %d":
-                parsed_date = parsed_date.replace(year=2025)
+            return parsed_date.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    for date_format in ("%b %d", "%B %d"):
+        try:
+            parsed_date = datetime.strptime(date_text, date_format).date().replace(year=date.today().year)
+            if parsed_date < date.today() - timedelta(days=7):
+                parsed_date = parsed_date.replace(year=parsed_date.year + 1)
             return parsed_date.strftime("%Y-%m-%d")
         except ValueError:
             continue
@@ -40,6 +47,8 @@ def get_events_from_db(db: Session) -> List[Event]:
 
 def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True) -> Event:
     event_date = _normalize_date(event.event_date)
+    source_name = event.source_name[:255] if event.source_name else None
+    source_type = event.source_type[:50] if event.source_type else None
     existing = (
         db.query(EventRecord)
         .filter(
@@ -53,8 +62,8 @@ def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True)
     if existing:
         existing.event_description = event.event_description
         existing.event_date = event_date
-        existing.source_name = event.source_name
-        existing.source_type = event.source_type
+        existing.source_name = source_name
+        existing.source_type = source_type
         record = existing
     else:
         record = EventRecord(
@@ -62,8 +71,8 @@ def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True)
             event_description=event.event_description,
             event_date=event_date,
             event_address=event.event_address,
-            source_name=event.source_name,
-            source_type=event.source_type,
+            source_name=source_name,
+            source_type=source_type,
         )
         db.add(record)
 
@@ -107,10 +116,7 @@ def process_image_file(db: Session, file_bytes: bytes, filename: str, update_emb
 
 
 def parse_date(date_str):
-    try:
-        return datetime.strptime(date_str.strip(), "%b %d").replace(year=2025).strftime("%Y-%m-%d")
-    except:
-        return date_str.strip()
+    return _normalize_date(date_str)
 
 
 def extract_events_from_text(raw_text: str, source_name: str = "ocr-upload") -> List[EventCreate]:

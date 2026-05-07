@@ -29,7 +29,8 @@ def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, An
         except Exception as e:
             failed_urls.append({"url": url, "error": str(e)})
 
-    deduped_events = _dedupe_events(extracted_events)
+    filtered_events = _drop_past_events(extracted_events) if request.exclude_past_events else extracted_events
+    deduped_events = _dedupe_events(filtered_events)
     ingestion_result = upsert_events(db, deduped_events, update_embeddings=request.train_model)
 
     return {
@@ -37,6 +38,7 @@ def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, An
         "urls_checked": len(urls),
         "events_from_search_results": len(serper_events),
         "events_extracted": len(extracted_events),
+        "events_after_past_filter": len(filtered_events),
         "events_after_dedupe": len(deduped_events),
         "ingestion": ingestion_result,
         "failed_urls": failed_urls,
@@ -370,6 +372,24 @@ def _dedupe_events(events: List[EventCreate]) -> List[EventCreate]:
         seen.add(key)
         deduped.append(event)
     return deduped
+
+
+def _drop_past_events(events: List[EventCreate]) -> List[EventCreate]:
+    upcoming_events = []
+    today = date.today()
+    for event in events:
+        parsed_date = _parse_date(event.event_date)
+        if parsed_date is None or parsed_date >= today:
+            upcoming_events.append(event)
+    return upcoming_events
+
+
+def _parse_date(value: Any) -> date | None:
+    normalized = _normalize_event_date(value)
+    try:
+        return datetime.strptime(normalized, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
 
 
 def _dedupe_urls(urls: List[str]) -> List[str]:
