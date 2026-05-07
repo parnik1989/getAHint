@@ -21,7 +21,7 @@ class WebIngestionRequest(BaseModel):
     max_search_results: int = 10
     include_search_result_snippets: bool = True
     exclude_past_events: bool = True
-    train_model: bool = True
+    update_embeddings: bool = True
 
 
 class Event(BaseModel):

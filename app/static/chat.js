@@ -14,7 +14,7 @@ function getUserId() {
   return userId;
 }
 
-function addMessage(role, text, results = []) {
+function addMessage(role, text, results = [], meta = {}) {
   const article = document.createElement("article");
   article.className = `message ${role}`;
 
@@ -26,11 +26,19 @@ function addMessage(role, text, results = []) {
     const resultList = document.createElement("div");
     resultList.className = "results";
 
+    if (meta.personalized) {
+      const note = document.createElement("p");
+      note.className = "personalization-note";
+      note.textContent = "Personalized using your previous event picks.";
+      resultList.appendChild(note);
+    }
+
     results.slice(0, 5).forEach((result) => {
-      const item = document.createElement("div");
+      const item = document.createElement("button");
+      item.type = "button";
       item.className = "result";
-      item.tabIndex = 0;
       item.dataset.eventId = result.id || "";
+      item.setAttribute("aria-label", `More like ${result.event_name || "this event"}`);
 
       const title = document.createElement("strong");
       title.textContent = result.event_name || "Untitled event";
@@ -38,9 +46,19 @@ function addMessage(role, text, results = []) {
       const meta = document.createElement("span");
       meta.textContent = [result.event_date, result.event_address, result.category].filter(Boolean).join(" · ");
 
-      item.append(title, meta);
-      item.addEventListener("click", () => recordInteraction(result.id));
+      const action = document.createElement("span");
+      action.className = "result-action";
+      action.textContent = "More like this";
+
+      item.append(title, meta, action);
+      item.addEventListener("click", async () => {
+        await recordInteraction(result.id, "save");
+        item.classList.add("selected");
+        action.textContent = "Preference saved";
+      });
       resultList.appendChild(item);
+
+      recordInteraction(result.id, "view");
     });
 
     bubble.appendChild(resultList);
@@ -65,18 +83,22 @@ async function sendMessage(message) {
   return response.json();
 }
 
-async function recordInteraction(eventId) {
+async function recordInteraction(eventId, interactionType = "click") {
   if (!eventId) return;
-  await fetch("/eventService/events/interactions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: getUserId(),
-      event_id: eventId,
-      interaction_type: "click",
-      query: lastQuery,
-    }),
-  });
+  try {
+    await fetch("/eventService/events/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: getUserId(),
+        event_id: eventId,
+        interaction_type: interactionType,
+        query: lastQuery,
+      }),
+    });
+  } catch (error) {
+    console.warn("Could not record event preference", error);
+  }
 }
 
 form.addEventListener("submit", async (event) => {
@@ -92,7 +114,9 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const data = await sendMessage(message);
-    addMessage("assistant", data.answer || "I could not find an answer.", data.results || []);
+    addMessage("assistant", data.answer || "I could not find an answer.", data.results || [], {
+      personalized: Boolean(data.personalized),
+    });
   } catch (error) {
     addMessage("assistant", "Something went wrong while searching. Please try again.");
   } finally {

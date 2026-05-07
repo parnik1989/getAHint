@@ -1,5 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.services.auth_service import get_user_id_for_token
 from app.services.modelService import build_chat_response, trainEventModelService
 
 router = APIRouter()
@@ -29,5 +32,10 @@ def train_event_model(data_source: str = None):
     return trainEventModelService(data_source)
 
 @router.post("/chat", include_in_schema=False)
-def chat(request: ChatRequest):
-    return build_chat_response(request.message, user_id=request.user_id)
+def chat(
+    request: ChatRequest,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    user_id = get_user_id_for_token(db, authorization) or request.user_id
+    return build_chat_response(request.message, user_id=user_id)

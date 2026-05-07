@@ -36,3 +36,21 @@ class EventInteraction(Base):
     interaction_type = Column(String(50), nullable=False, index=True)
     query = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    token = Column(String(255), nullable=False, unique=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

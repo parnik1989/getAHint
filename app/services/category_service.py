@@ -9,6 +9,15 @@ from sklearn.pipeline import Pipeline
 from app.core.paths import CATEGORY_MODEL_PATH, ML_DIR
 
 CATEGORY_KEYWORDS = {
+    "cultural": {
+        "cultural",
+        "culture",
+        "folk",
+        "regional",
+        "tradition",
+        "traditional",
+        "rhythms",
+    },
     "music": {
         "acoustic",
         "band",
@@ -182,6 +191,8 @@ def _category_training_data() -> list[tuple[str, str]]:
             ("startup founder networking and VC connect", "startup"),
             ("stand-up comedy night and improv show", "comedy"),
             ("live band concert and bollywood music", "music"),
+            ("regional cultural rhythms and folk traditions", "cultural"),
+            ("cultural night with regional sounds", "cultural"),
             ("business expo and trade fair", "business"),
             ("public speaking toastmasters meeting", "education"),
             ("kids puppet show and family activity", "family"),

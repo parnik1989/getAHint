@@ -31,7 +31,7 @@ def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, An
 
     filtered_events = _drop_past_events(extracted_events) if request.exclude_past_events else extracted_events
     deduped_events = _dedupe_events(filtered_events)
-    ingestion_result = upsert_events(db, deduped_events, update_embeddings=request.train_model)
+    ingestion_result = upsert_events(db, deduped_events, update_embeddings=request.update_embeddings)
 
     return {
         "searched_queries": _queries_for_request(request),
@@ -42,7 +42,7 @@ def ingest_web_events(db: Session, request: WebIngestionRequest) -> Dict[str, An
         "events_after_dedupe": len(deduped_events),
         "ingestion": ingestion_result,
         "failed_urls": failed_urls,
-        "embedding_update": "per_event" if request.train_model else "skipped",
+        "embedding_update": "per_event" if request.update_embeddings else "skipped",
     }
 
 

@@ -22,6 +22,10 @@ GENERIC_QUERY_TERMS = {
     "about",
     "any",
     "at",
+    "can",
+    "could",
+    "day",
+    "days",
     "event",
     "events",
     "festival",
@@ -35,12 +39,26 @@ GENERIC_QUERY_TERMS = {
     "near",
     "of",
     "on",
+    "please",
+    "recommend",
     "show",
+    "suggest",
     "the",
     "to",
     "upcoming",
+    "would",
+    "you",
 }
 SHORT_MEANINGFUL_TERMS = {"ai", "ml", "vr", "ar", "dj", "qs"}
+QUERY_EXPANSIONS = {
+    "cultural": {"culture", "regional", "folk", "traditional", "rhythms"},
+    "culture": {"cultural", "regional", "folk", "traditional", "rhythms"},
+    "music": {"musical", "concert", "band", "live", "jamming"},
+    "workshop": {"training", "masterclass", "camp"},
+    "tech": {"technology", "ai", "ml"},
+    "startup": {"founder", "entrepreneur", "networking", "vc"},
+    "comedy": {"laugh", "standup", "stand-up", "improv"},
+}
 
 
 @lru_cache(maxsize=2)
@@ -371,7 +389,10 @@ def _meaningful_terms(text_value: str) -> set[str]:
             terms.add(term)
             if len(term) > 3 and term.endswith("s") and not term.endswith("ss"):
                 terms.add(term[:-1])
-    return terms
+    expanded_terms = set(terms)
+    for term in terms:
+        expanded_terms.update(QUERY_EXPANSIONS.get(term, set()))
+    return expanded_terms
 
 
 def _is_upcoming_query(query):

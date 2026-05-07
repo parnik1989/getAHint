@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, File, HTTPException, status, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, status, UploadFile
 from typing import List
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.eventSchema import EventInteractionCreate
+from app.services.auth_service import get_user_id_for_token
 from app.services.event_service import (
     consolidateAllEventsFromDataStore,
     process_image_file,
@@ -17,8 +18,8 @@ from app.services.web_ingestion_service import ingest_web_events
 router = APIRouter()
 
 
-def _train_model_after_ingestion(train_model: bool):
-    if not train_model:
+def _embedding_update_after_ingestion(update_embeddings: bool):
+    if not update_embeddings:
         return None
     return {
         "status": "Vector embedding updated during ingestion",
@@ -31,24 +32,24 @@ def get_all_events():
 
 
 @router.post("/events", status_code=201, include_in_schema=False)
-def create_or_update_event(event: EventCreate, train_model: bool = True, db: Session = Depends(get_db)):
-    saved_event = upsert_event(db, event, update_embedding=train_model)
-    training_result = _train_model_after_ingestion(train_model)
-    return {"event": saved_event, "model_training": training_result}
+def create_or_update_event(event: EventCreate, update_embeddings: bool = True, db: Session = Depends(get_db)):
+    saved_event = upsert_event(db, event, update_embedding=update_embeddings)
+    embedding_update = _embedding_update_after_ingestion(update_embeddings)
+    return {"event": saved_event, "embedding_update": embedding_update}
 
 
 @router.post("/events/bulk", include_in_schema=False)
-def create_or_update_events(events: List[EventCreate], train_model: bool = True, db: Session = Depends(get_db)):
-    ingestion_result = upsert_events(db, events, update_embeddings=train_model)
-    training_result = _train_model_after_ingestion(train_model)
-    return {"ingestion": ingestion_result, "model_training": training_result}
+def create_or_update_events(events: List[EventCreate], update_embeddings: bool = True, db: Session = Depends(get_db)):
+    ingestion_result = upsert_events(db, events, update_embeddings=update_embeddings)
+    embedding_update = _embedding_update_after_ingestion(update_embeddings)
+    return {"ingestion": ingestion_result, "embedding_update": embedding_update}
 
 
 @router.post("/ingestEvents")
-def ingest_events(events: List[EventCreate], train_model: bool = True, db: Session = Depends(get_db)):
-    ingestion_result = upsert_events(db, events, update_embeddings=train_model)
-    training_result = _train_model_after_ingestion(train_model)
-    return {"ingestion": ingestion_result, "model_training": training_result}
+def ingest_events(events: List[EventCreate], update_embeddings: bool = True, db: Session = Depends(get_db)):
+    ingestion_result = upsert_events(db, events, update_embeddings=update_embeddings)
+    embedding_update = _embedding_update_after_ingestion(update_embeddings)
+    return {"ingestion": ingestion_result, "embedding_update": embedding_update}
 
 
 @router.post("/syncWebEvents")
@@ -60,18 +61,25 @@ def sync_web_events(request: WebIngestionRequest, db: Session = Depends(get_db))
 
 
 @router.post("/uploadEventImage", status_code=201, include_in_schema=False)
-async def upload_event_image(file: UploadFile = File(...), train_model: bool = True, db: Session = Depends(get_db)):
+async def upload_event_image(file: UploadFile = File(...), update_embeddings: bool = True, db: Session = Depends(get_db)):
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No filename provided")
     content = await file.read()
     try:
-        events = process_image_file(db, content, file.filename, update_embeddings=train_model)
-        training_result = _train_model_after_ingestion(train_model and bool(events))
-        return {"events": events, "model_training": training_result}
+        events = process_image_file(db, content, file.filename, update_embeddings=update_embeddings)
+        embedding_update = _embedding_update_after_ingestion(update_embeddings and bool(events))
+        return {"events": events, "embedding_update": embedding_update}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.post("/events/interactions", status_code=201, include_in_schema=False)
-def create_event_interaction(interaction: EventInteractionCreate, db: Session = Depends(get_db)):
+def create_event_interaction(
+    interaction: EventInteractionCreate,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    authenticated_user_id = get_user_id_for_token(db, authorization)
+    if authenticated_user_id:
+        interaction.user_id = authenticated_user_id
     return record_event_interaction(db, interaction)

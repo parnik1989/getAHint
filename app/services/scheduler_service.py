@@ -73,7 +73,7 @@ def _web_sync_request_from_env() -> WebIngestionRequest:
         city=os.getenv("WEB_SYNC_CITY", "Hyderabad"),
         max_search_results=_env_int("WEB_SYNC_MAX_SEARCH_RESULTS", default=10),
         exclude_past_events=_env_bool("WEB_SYNC_EXCLUDE_PAST_EVENTS", default=True),
-        train_model=_env_bool("WEB_SYNC_TRAIN_MODEL", default=True),
+        update_embeddings=_env_bool("WEB_SYNC_UPDATE_EMBEDDINGS", default=True),
     )
 
 

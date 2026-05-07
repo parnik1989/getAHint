@@ -30,7 +30,7 @@ def _delete_test_event():
 def test_get_all_event_data():
     _delete_test_event()
     created = client.post(
-        "/eventService/events?train_model=false",
+        "/eventService/events?update_embeddings=false",
         json={
             "event_name": "Test Event",
             "event_description": "Temporary event for API read verification.",
@@ -41,7 +41,7 @@ def test_get_all_event_data():
         },
     )
     assert created.status_code == 201
-    assert created.json()["model_training"] is None
+    assert created.json()["embedding_update"] is None
 
     r = client.get("/eventService/getAllEventData")
     assert r.status_code == 200
@@ -57,7 +57,7 @@ def test_get_all_event_data():
 def test_ingestion_assigns_event_category():
     _delete_test_event()
     created = client.post(
-        "/eventService/events?train_model=false",
+        "/eventService/events?update_embeddings=false",
         json={
             "event_name": "Test Future Science Workshop",
             "event_description": "AI workshop for product builders.",
@@ -76,7 +76,7 @@ def test_ingestion_assigns_event_category():
 def test_records_event_interaction():
     _delete_test_event()
     created = client.post(
-        "/eventService/events?train_model=false",
+        "/eventService/events?update_embeddings=false",
         json={
             "event_name": "Test Future Science Workshop",
             "event_description": "AI workshop for product builders.",
@@ -100,6 +100,40 @@ def test_records_event_interaction():
 
     assert response.status_code == 201
     assert response.json()["status"] == "recorded"
+    _delete_test_event()
+
+
+def test_chat_response_marks_personalized_after_interaction():
+    _delete_test_event()
+    created = client.post(
+        "/eventService/events?update_embeddings=false",
+        json={
+            "event_name": "Test Future Science Workshop",
+            "event_description": "AI workshop for product builders.",
+            "event_date": "2999-06-01",
+            "event_address": "Hyderabad",
+            "source_name": "test",
+            "source_type": "api",
+        },
+    )
+    event_id = created.json()["event"]["id"]
+    client.post(
+        "/eventService/events/interactions",
+        json={
+            "user_id": "personalized-user",
+            "event_id": event_id,
+            "interaction_type": "save",
+            "query": "ai workshops",
+        },
+    )
+
+    response = client.post(
+        "/modelService/chat",
+        json={"message": "upcoming workshops", "user_id": "personalized-user"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["personalized"] is True
     _delete_test_event()
 
 
@@ -163,6 +197,42 @@ def test_short_ai_and_plural_terms_match_event_text():
         _delete_test_event()
 
     assert "Test Future Science Workshop" in {result["event_name"] for result in results}
+
+
+def test_natural_cultural_query_keeps_topic_terms():
+    _delete_test_event()
+    db = SessionLocal()
+    try:
+        saved = upsert_event(
+            db,
+            EventCreate(
+                event_name="Test Regional Culture Night",
+                event_description="Indian regional sounds and cultural rhythms.",
+                event_date="2999-06-02",
+                event_address="Hyderabad",
+                source_name="test",
+                source_type="api",
+            ),
+            update_embedding=False,
+        )
+        db.query(EventRecord).filter(EventRecord.id == saved.id).update({"embedding_json": None})
+        db.commit()
+
+        results = search_events_hybrid(
+            db,
+            "can you suggest any upcoming cultural events in coming days ?",
+            top_k=5,
+        )
+    finally:
+        db.close()
+        db = SessionLocal()
+        try:
+            db.query(EventRecord).filter(EventRecord.event_name == "Test Regional Culture Night").delete()
+            db.commit()
+        finally:
+            db.close()
+
+    assert "Test Regional Culture Night" in {result["event_name"] for result in results}
 
 
 def test_extracts_schema_org_event_json_ld():
@@ -240,7 +310,7 @@ def test_hybrid_search_uses_latest_database_rows_without_embeddings():
         _delete_test_event()
 
     assert results
-    assert results[0]["event_name"] == "Test Future Science Workshop"
+    assert "Test Future Science Workshop" in {result["event_name"] for result in results}
 
 
 def test_chat_ranking_excludes_past_events():

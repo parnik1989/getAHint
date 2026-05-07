@@ -11,7 +11,7 @@ from app.db.session import engine
 from app.db.session import SessionLocal
 from app.services.answer_generation_service import generate_event_answer
 from app.services.category_service import classify_event_category, train_event_category_model
-from app.services.personalization_service import personalize_results
+from app.services.personalization_service import has_user_preferences, personalize_results
 from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_hybrid
 
 EVENT_QUERY_INTENTS = {"content_query", "search", "information", "event_query"}
@@ -71,6 +71,7 @@ def build_chat_response(message: str, top_k: int = 5, user_id: str | None = None
         "total_matches": model_response.get("total_matches", 0),
         "intent": intent,
         "query_category": model_response.get("query_category"),
+        "personalized": model_response.get("personalized", False),
     }
 
 
@@ -244,6 +245,7 @@ def testExistingModel(query: str, top_k: int = 5, user_id: str | None = None):
         db = SessionLocal()
         try:
             results = search_events_hybrid(db, query, top_k=max(top_k * 4, 10))
+            personalized = has_user_preferences(db, user_id)
             results = personalize_results(db, results, user_id)
             results, upcoming_only, fallback_to_past = filter_and_rank_results(results, query)
             results = results[:top_k]
@@ -263,6 +265,7 @@ def testExistingModel(query: str, top_k: int = 5, user_id: str | None = None):
             "upcoming_only": upcoming_only,
             "fallback_to_past": fallback_to_past,
             "query_category": query_category if query_category != "general" else None,
+            "personalized": personalized,
         }
 
     except Exception as e:

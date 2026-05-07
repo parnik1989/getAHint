@@ -60,3 +60,7 @@ def personalize_results(db: Session, results: List[Dict[str, Any]], user_id: str
 
     personalized.sort(key=lambda result: result["similarity_score"], reverse=True)
     return personalized
+
+
+def has_user_preferences(db: Session, user_id: str | None) -> bool:
+    return bool(user_category_preferences(db, user_id))

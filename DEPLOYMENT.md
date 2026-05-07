@@ -99,7 +99,7 @@ You can now deploy from any cloud provider:
   ```
 - Bulk ingestion also stores embeddings by default. For very large imports, you can skip per-row embedding generation and backfill once afterward:
   ```bash
-  curl -X POST "https://your-app.up.railway.app/eventService/ingestEvents?train_model=false" \
+  curl -X POST "https://your-app.up.railway.app/eventService/ingestEvents?update_embeddings=false" \
     -H "Content-Type: application/json" \
     -d '[...]'
   ```
@@ -123,7 +123,7 @@ You can now deploy from any cloud provider:
       "max_search_results": 10,
       "include_search_result_snippets": true,
       "exclude_past_events": true,
-      "train_model": true
+      "update_embeddings": true
     }'
   ```
 - Optional web ingestion variables:
@@ -140,7 +140,7 @@ You can now deploy from any cloud provider:
   - `WEB_SYNC_SOURCE_URLS`: pipe-separated source URLs for the scheduler. The manual endpoint can still use `source_urls`.
   - `WEB_SYNC_MAX_SEARCH_RESULTS`: defaults to `10`.
   - `WEB_SYNC_EXCLUDE_PAST_EVENTS`: defaults to `true`; prevents old discovered events from being inserted during scheduled sync.
-  - `WEB_SYNC_TRAIN_MODEL`: defaults to `true`; stores embeddings during ingestion.
+  - `WEB_SYNC_UPDATE_EMBEDDINGS`: defaults to `true`; stores embeddings during ingestion.
   - `WEB_SYNC_RUN_ON_STARTUP`: optional; set to `true` to run once immediately when the app starts.
 - Add runtime variables in Railway:
   - `PUBLIC_BASE_URL`: your Railway app URL, for example `https://your-app.up.railway.app`.
