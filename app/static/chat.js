@@ -3,18 +3,20 @@ const input = document.querySelector("#message-input");
 const messages = document.querySelector("#messages");
 const submitButton = form.querySelector("button");
 const authForm = document.querySelector("#auth-form");
-const authToggle = document.querySelector("#auth-toggle");
 const authStatus = document.querySelector("#auth-status");
 const authUsername = document.querySelector("#auth-username");
 const authPassword = document.querySelector("#auth-password");
 const registerButton = document.querySelector("#register-button");
+const guestModeButton = document.querySelector("#guest-mode");
+const userModeButton = document.querySelector("#user-mode");
 const USER_ID_KEY = "getahint_user_id";
 const AUTH_TOKEN_KEY = "getahint_auth_token";
 const AUTH_USERNAME_KEY = "getahint_auth_username";
 let lastQuery = "";
+let activeMode = localStorage.getItem(AUTH_TOKEN_KEY) ? "user" : "guest";
 
 function getUserId() {
-  const username = localStorage.getItem(AUTH_USERNAME_KEY);
+  const username = activeMode === "user" ? localStorage.getItem(AUTH_USERNAME_KEY) : null;
   if (username) return `account-${username}`;
 
   let userId = localStorage.getItem(USER_ID_KEY);
@@ -26,7 +28,7 @@ function getUserId() {
 }
 
 function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return activeMode === "user" ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
 }
 
 function authHeaders() {
@@ -36,13 +38,20 @@ function authHeaders() {
 
 function updateAuthUi() {
   const username = localStorage.getItem(AUTH_USERNAME_KEY);
-  if (username) {
+  const isUserMode = activeMode === "user";
+
+  guestModeButton.classList.toggle("active", !isUserMode);
+  userModeButton.classList.toggle("active", isUserMode);
+
+  if (isUserMode && username) {
     authStatus.textContent = `Signed in as ${username}`;
-    authToggle.textContent = "Logout";
     authForm.classList.add("hidden");
+  } else if (isUserMode) {
+    authStatus.textContent = "User mode";
+    authForm.classList.remove("hidden");
   } else {
     authStatus.textContent = "Guest mode";
-    authToggle.textContent = "Login";
+    authForm.classList.add("hidden");
   }
 }
 
@@ -99,6 +108,19 @@ function addMessage(role, text, results = [], meta = {}) {
   article.appendChild(bubble);
   messages.appendChild(article);
   messages.scrollTop = messages.scrollHeight;
+  return article;
+}
+
+function removeMessage(article) {
+  if (article && article.parentNode) {
+    article.parentNode.removeChild(article);
+  }
+}
+
+function addThinkingMessage() {
+  const article = addMessage("assistant", "Thinking...");
+  article.classList.add("thinking");
+  return article;
 }
 
 async function sendMessage(message) {
@@ -155,6 +177,7 @@ async function authenticate(mode) {
 
   localStorage.setItem(AUTH_TOKEN_KEY, payload.token);
   localStorage.setItem(AUTH_USERNAME_KEY, payload.username);
+  activeMode = "user";
   authPassword.value = "";
   updateAuthUi();
   addMessage("assistant", `Signed in as ${payload.username}. I will use your event picks for personalization.`);
@@ -164,8 +187,17 @@ async function logout() {
   await fetch("/auth/logout", { method: "POST", headers: authHeaders() });
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USERNAME_KEY);
+  activeMode = "guest";
   updateAuthUi();
   addMessage("assistant", "Signed out. I will use this browser's guest preferences now.");
+}
+
+function setMode(mode) {
+  activeMode = mode;
+  if (mode === "guest") {
+    authForm.classList.add("hidden");
+  }
+  updateAuthUi();
 }
 
 form.addEventListener("submit", async (event) => {
@@ -178,13 +210,16 @@ form.addEventListener("submit", async (event) => {
   lastQuery = message;
   input.value = "";
   submitButton.disabled = true;
+  const thinkingMessage = addThinkingMessage();
 
   try {
     const data = await sendMessage(message);
+    removeMessage(thinkingMessage);
     addMessage("assistant", data.answer || "I could not find an answer.", data.results || [], {
       personalized: Boolean(data.personalized),
     });
   } catch (error) {
+    removeMessage(thinkingMessage);
     addMessage("assistant", "Something went wrong while searching. Please try again.");
   } finally {
     submitButton.disabled = false;
@@ -192,13 +227,18 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-authToggle.addEventListener("click", async () => {
-  if (getAuthToken()) {
+guestModeButton.addEventListener("click", () => {
+  setMode("guest");
+});
+
+userModeButton.addEventListener("click", async () => {
+  if (activeMode === "user" && getAuthToken()) {
     await logout();
-  } else {
-    authForm.classList.toggle("hidden");
-    authUsername.focus();
+    return;
   }
+
+  setMode("user");
+  authUsername.focus();
 });
 
 authForm.addEventListener("submit", async (event) => {

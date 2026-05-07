@@ -16,7 +16,10 @@
           </div>
           <div class="header-actions">
             <span id="auth-status" class="auth-status">Guest mode</span>
-            <button id="auth-toggle" class="link-button" type="button">Login</button>
+            <div class="mode-switch" aria-label="Personalization mode">
+              <button id="guest-mode" class="mode-button active" type="button">Guest</button>
+              <button id="user-mode" class="mode-button" type="button">User</button>
+            </div>
             <a href="/docs" class="docs-link">API Docs</a>
           </div>
         </header>

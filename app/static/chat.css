@@ -83,14 +83,29 @@ body {
   font-size: 13px;
 }
 
-.link-button {
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mode-button {
+  height: 34px;
+  min-width: 64px;
   border: 0;
-  background: transparent;
-  color: var(--accent);
+  background: #ffffff;
+  color: var(--muted);
   font: inherit;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  padding: 0;
+}
+
+.mode-button.active {
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .auth-form {
@@ -158,6 +173,11 @@ body {
 .user .bubble {
   background: var(--user);
   border: 1px solid #b9ebe4;
+}
+
+.thinking .bubble {
+  color: var(--muted);
+  font-style: italic;
 }
 
 .results {
