@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from app.services.modelService import trainEventModelService, testExistingModel
+from app.services.modelService import build_chat_response, trainEventModelService, testExistingModel
 
 router = APIRouter()
 
@@ -46,13 +46,4 @@ def test_model(query: str):
 
 @router.post("/chat")
 def chat(request: ChatRequest):
-    message = request.message.strip()
-    if not message:
-        return {"answer": "Ask me about events in Hyderabad.", "results": []}
-
-    model_response = testExistingModel(message)
-    return {
-        "answer": model_response.get("answer") or model_response.get("error", "I could not find an answer."),
-        "results": model_response.get("results", []),
-        "total_matches": model_response.get("total_matches", 0),
-    }
+    return build_chat_response(request.message)

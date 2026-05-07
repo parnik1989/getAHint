@@ -54,6 +54,16 @@ def test_get_all_event_data():
     _delete_test_event()
 
 
+def test_chat_greeting_does_not_return_events():
+    response = client.post("/modelService/chat", json={"message": "hi"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["intent"] == "greeting"
+    assert payload["results"] == []
+    assert "upcoming events" in payload["answer"].lower()
+
+
 def test_specific_query_filters_unrelated_vector_neighbors():
     results = [
         {

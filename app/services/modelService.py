@@ -10,6 +10,13 @@ from app.db.session import engine
 from app.db.session import SessionLocal
 from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_hybrid
 
+EVENT_QUERY_INTENTS = {"content_query", "search", "information", "event_query"}
+CONVERSATIONAL_RESPONSES = {
+    "greeting": "Hello! Ask me about upcoming events in Hyderabad.",
+    "help": "You can ask me things like 'upcoming AI workshops', 'music events this weekend', or 'startup events in Hyderabad'.",
+    "feedback": "Thanks! Ask me anytime about upcoming events in Hyderabad.",
+}
+
 
 def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
     if not results:
@@ -28,6 +35,65 @@ def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
             f"{event['event_description']}"
         )
     return "\n".join(lines)
+
+
+def classify_intent(message: str) -> str:
+    rule_intent = _rule_based_intent(message)
+    if rule_intent:
+        return rule_intent
+
+    if not INTENT_MODEL_PATH.exists():
+        intent_train_model()
+
+    try:
+        pipeline = joblib.load(INTENT_MODEL_PATH)
+        return pipeline.predict([message])[0]
+    except Exception as e:
+        print(f"Intent classification failed; treating as event query: {e}")
+        return "content_query"
+
+
+def build_chat_response(message: str, top_k: int = 5):
+    message = message.strip()
+    if not message:
+        return {"answer": "Ask me about upcoming events in Hyderabad.", "results": [], "total_matches": 0, "intent": "empty"}
+
+    intent = classify_intent(message)
+    if intent in CONVERSATIONAL_RESPONSES:
+        return {
+            "answer": CONVERSATIONAL_RESPONSES[intent],
+            "results": [],
+            "total_matches": 0,
+            "intent": intent,
+        }
+
+    if intent not in EVENT_QUERY_INTENTS:
+        return {
+            "answer": "I can help with upcoming events in Hyderabad. Try asking about concerts, workshops, conferences, or startup events.",
+            "results": [],
+            "total_matches": 0,
+            "intent": intent,
+        }
+
+    model_response = testExistingModel(message, top_k=top_k)
+    return {
+        "answer": model_response.get("answer") or model_response.get("error", "I could not find an answer."),
+        "results": model_response.get("results", []),
+        "total_matches": model_response.get("total_matches", 0),
+        "intent": intent,
+    }
+
+
+def _rule_based_intent(message: str) -> str | None:
+    normalized = message.strip().lower()
+    normalized = normalized.strip(" .,!?:;")
+    if normalized in {"hi", "hello", "hey", "hii", "hola", "good morning", "good afternoon", "good evening"}:
+        return "greeting"
+    if normalized in {"thanks", "thank you", "bye", "goodbye", "see you"}:
+        return "feedback"
+    if normalized in {"help", "help me", "what can you do", "how can you help"}:
+        return "help"
+    return None
 
 def intent_train_model():
     """Train generic intent classification model"""

@@ -143,15 +143,9 @@ You can now deploy from any cloud provider:
   - `WEB_SYNC_TRAIN_MODEL`: defaults to `true`; stores embeddings during ingestion.
   - `WEB_SYNC_RUN_ON_STARTUP`: optional; set to `true` to run once immediately when the app starts.
 - Add runtime variables in Railway:
-  - `TELEGRAM_BOT_TOKEN`: your token from BotFather.
   - `PUBLIC_BASE_URL`: your Railway app URL, for example `https://your-app.up.railway.app`.
 - Open Swagger UI at `https://your-app.up.railway.app/docs`.
 - Open the chat UI at `https://your-app.up.railway.app/chat`.
-- Check Telegram config at `https://your-app.up.railway.app/telegramService/telegram/status`.
-- Register the Telegram webhook after deployment:
-  ```bash
-  curl -X POST "https://your-app.up.railway.app/telegramService/telegram/setWebhook"
-  ```
 
 **Kubernetes:**
 ```yaml

@@ -23,22 +23,6 @@ Hosted Railway app
 - Swagger UI: `https://<your-railway-domain>/docs`
 - Chat UI: `https://<your-railway-domain>/chat`
 - OpenAPI JSON: `https://<your-railway-domain>/openapi.json`
-- Telegram status: `https://<your-railway-domain>/telegramService/telegram/status`
-
-Telegram setup
-
-Set these Railway variables:
-
-```bash
-TELEGRAM_BOT_TOKEN=<your bot token from BotFather>
-PUBLIC_BASE_URL=https://<your-railway-domain>
-```
-
-After deployment, register the Telegram webhook once:
-
-```bash
-curl -X POST "https://<your-railway-domain>/telegramService/telegram/setWebhook"
-```
 
 Recommendations
 
