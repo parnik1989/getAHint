@@ -4,50 +4,67 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>getAHint Chat</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9Oer+R4A5lEjoM+3I5Ca1c8H0dQ8i7E4S9KpJ6aR8h3"
+      crossorigin="anonymous"
+    />
     <link rel="stylesheet" href="/static/chat.css" />
   </head>
   <body>
-    <main id="app-shell" class="shell guest-mode">
-      <section class="chat-panel" aria-label="Event chat">
-        <header class="chat-header">
+    <main id="app-shell" class="app-shell guest-mode">
+      <section class="chat-panel card border-0" aria-label="Event chat">
+        <header class="chat-header card-header">
           <div class="brand-block">
-            <h1>getAHint</h1>
-            <p>Ask about events in Hyderabad</p>
+            <span class="brand-mark">gH</span>
+            <div>
+              <h1>getAHint</h1>
+              <p>Personalized event discovery for Hyderabad</p>
+            </div>
           </div>
           <div class="header-actions">
-            <div class="mode-switch" aria-label="Personalization mode">
-              <button id="guest-mode" class="mode-button active" type="button">Guest</button>
-              <button id="user-mode" class="mode-button" type="button">User</button>
+            <label id="mode-slider" class="mode-slider" aria-label="Switch between guest and user mode">
+              <input id="mode-checkbox" type="checkbox" />
+              <span class="mode-track">
+                <span>Guest</span>
+                <span>User</span>
+              </span>
+              <span class="mode-thumb"></span>
+            </label>
+            <div id="user-chip" class="user-chip d-none">
+              <span id="auth-status" class="badge rounded-pill text-bg-success">Guest mode</span>
+              <button id="logout-button" class="btn btn-sm btn-outline-secondary" type="button">Logout</button>
             </div>
-            <span id="auth-status" class="auth-status">Guest mode</span>
-            <a href="/docs" class="docs-link">API Docs</a>
+            <a href="/docs" class="btn btn-sm btn-outline-secondary">API Docs</a>
           </div>
         </header>
 
-        <section id="auth-panel" class="auth-panel" aria-label="User account">
+        <section id="auth-panel" class="auth-panel alert alert-success border-0 rounded-0 mb-0" aria-label="User account">
           <div class="auth-copy">
             <strong>Personalize across devices</strong>
             <span>Sign in to keep your event preferences with your account.</span>
           </div>
           <form id="auth-form" class="auth-form">
-            <input id="auth-username" name="username" type="text" autocomplete="username" placeholder="Username" />
-            <input id="auth-password" name="password" type="password" autocomplete="current-password" placeholder="Password" />
-            <button type="submit">Login</button>
-            <button id="register-button" type="button">Register</button>
+            <input id="auth-username" class="form-control" name="username" type="text" autocomplete="username" placeholder="Username" />
+            <input id="auth-password" class="form-control" name="password" type="password" autocomplete="current-password" placeholder="Password" />
+            <button class="btn btn-success" type="submit">Login</button>
+            <button id="register-button" class="btn btn-outline-success" type="button">Register</button>
           </form>
         </section>
 
         <div id="messages" class="messages" aria-live="polite">
           <article class="message assistant">
             <div class="bubble">
-              Tell me what kind of event you are looking for. Try “Bonalu festival”, “food festival”, or “classical dance”.
+              Tell me what kind of event you are looking for. Try "cultural events", "AI workshops", or "music this weekend".
             </div>
           </article>
         </div>
 
-        <form id="chat-form" class="composer">
+        <form id="chat-form" class="composer card-footer">
           <input
             id="message-input"
+            class="form-control form-control-lg"
             name="message"
             type="text"
             autocomplete="off"
@@ -55,7 +72,7 @@
             aria-label="Message"
             required
           />
-          <button type="submit">Send</button>
+          <button class="btn btn-success btn-lg" type="submit">Send</button>
         </form>
       </section>
     </main>

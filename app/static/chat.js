@@ -9,8 +9,10 @@ const authStatus = document.querySelector("#auth-status");
 const authUsername = document.querySelector("#auth-username");
 const authPassword = document.querySelector("#auth-password");
 const registerButton = document.querySelector("#register-button");
-const guestModeButton = document.querySelector("#guest-mode");
-const userModeButton = document.querySelector("#user-mode");
+const modeSlider = document.querySelector("#mode-slider");
+const modeCheckbox = document.querySelector("#mode-checkbox");
+const userChip = document.querySelector("#user-chip");
+const logoutButton = document.querySelector("#logout-button");
 const USER_ID_KEY = "getahint_user_id";
 const AUTH_TOKEN_KEY = "getahint_auth_token";
 const AUTH_USERNAME_KEY = "getahint_auth_username";
@@ -44,18 +46,21 @@ function updateAuthUi() {
 
   appShell.classList.toggle("guest-mode", !isUserMode);
   appShell.classList.toggle("user-mode", isUserMode);
-  guestModeButton.classList.toggle("active", !isUserMode);
-  userModeButton.classList.toggle("active", isUserMode);
+  modeCheckbox.checked = isUserMode;
 
   if (isUserMode && username) {
-    authStatus.textContent = `Signed in as ${username}`;
+    authStatus.textContent = username;
     authPanel.classList.add("signed-in");
+    modeSlider.classList.add("d-none");
+    userChip.classList.remove("d-none");
   } else if (isUserMode) {
-    authStatus.textContent = "User mode";
     authPanel.classList.remove("signed-in");
+    modeSlider.classList.remove("d-none");
+    userChip.classList.add("d-none");
   } else {
-    authStatus.textContent = "Guest mode";
     authPanel.classList.remove("signed-in");
+    modeSlider.classList.remove("d-none");
+    userChip.classList.add("d-none");
   }
 }
 
@@ -73,7 +78,7 @@ function addMessage(role, text, results = [], meta = {}) {
 
     if (meta.personalized) {
       const note = document.createElement("p");
-      note.className = "personalization-note";
+      note.className = "personalization-note badge rounded-pill text-bg-success-subtle";
       note.textContent = "Personalized using your previous event picks.";
       resultList.appendChild(note);
     }
@@ -81,25 +86,46 @@ function addMessage(role, text, results = [], meta = {}) {
     results.slice(0, 5).forEach((result) => {
       const item = document.createElement("button");
       item.type = "button";
-      item.className = "result";
+      item.className = "result card";
       item.dataset.eventId = result.id || "";
-      item.setAttribute("aria-label", `More like ${result.event_name || "this event"}`);
+      item.setAttribute("aria-expanded", "false");
+      item.setAttribute("aria-label", `Show details for ${result.event_name || "this event"}`);
+
+      const body = document.createElement("span");
+      body.className = "card-body";
+
+      const topLine = document.createElement("span");
+      topLine.className = "result-topline";
 
       const title = document.createElement("strong");
+      title.className = "result-title";
       title.textContent = result.event_name || "Untitled event";
 
+      const category = document.createElement("span");
+      category.className = "result-category badge rounded-pill";
+      category.textContent = result.category || "event";
+
       const meta = document.createElement("span");
-      meta.textContent = [result.event_date, result.event_address, result.category].filter(Boolean).join(" · ");
+      meta.className = "result-meta";
+      meta.textContent = [result.event_date, result.event_address].filter(Boolean).join(" · ");
+
+      const details = document.createElement("p");
+      details.className = "result-details";
+      details.textContent = result.event_description || "No additional details available.";
 
       const action = document.createElement("span");
       action.className = "result-action";
-      action.textContent = "More like this";
+      action.textContent = "Show details";
 
-      item.append(title, meta, action);
+      topLine.append(title, category);
+      body.append(topLine, meta, details, action);
+      item.append(body);
       item.addEventListener("click", async () => {
-        await recordInteraction(result.id, "save");
+        const isExpanded = item.classList.toggle("expanded");
         item.classList.add("selected");
-        action.textContent = "Preference saved";
+        item.setAttribute("aria-expanded", String(isExpanded));
+        action.textContent = isExpanded ? "Hide details · preference saved" : "Show details";
+        await recordInteraction(result.id, "save");
       });
       resultList.appendChild(item);
 
@@ -228,19 +254,14 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-guestModeButton.addEventListener("click", () => {
-  setMode("guest");
-});
-
-userModeButton.addEventListener("click", async () => {
-  if (activeMode === "user" && getAuthToken()) {
-    await logout();
-    return;
+modeCheckbox.addEventListener("change", () => {
+  setMode(modeCheckbox.checked ? "user" : "guest");
+  if (modeCheckbox.checked) {
+    authUsername.focus();
   }
-
-  setMode("user");
-  authUsername.focus();
 });
+
+logoutButton.addEventListener("click", logout);
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();

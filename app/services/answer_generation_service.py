@@ -8,21 +8,11 @@ def generate_event_answer(query: str, results: List[Dict[str, Any]], upcoming_on
     category_groups = _category_groups(results)
     if len(category_groups) == 1:
         category_text = next(iter(category_groups))
-        opening = f"I found these upcoming {category_text} events:"
+        return f"I found {len(results)} upcoming {category_text} event{'s' if len(results) != 1 else ''}."
     elif upcoming_only:
-        opening = "I found these matching upcoming events:"
+        return f"I found {len(results)} matching upcoming event{'s' if len(results) != 1 else ''}."
     else:
-        opening = "I found these matching events:"
-
-    lines = [opening]
-    for event in results:
-        category = event.get("category")
-        category_suffix = f" [{category}]" if category else ""
-        lines.append(
-            f"- {event['event_name']} on {event['event_date']} at {event['event_address']}{category_suffix}. "
-            f"{event['event_description']}"
-        )
-    return "\n".join(lines)
+        return f"I found {len(results)} matching event{'s' if len(results) != 1 else ''}."
 
 
 def _category_groups(results: List[Dict[str, Any]]) -> set[str]:
