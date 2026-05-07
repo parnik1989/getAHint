@@ -1,7 +1,9 @@
 const form = document.querySelector("#chat-form");
+const appShell = document.querySelector("#app-shell");
 const input = document.querySelector("#message-input");
 const messages = document.querySelector("#messages");
 const submitButton = form.querySelector("button");
+const authPanel = document.querySelector("#auth-panel");
 const authForm = document.querySelector("#auth-form");
 const authStatus = document.querySelector("#auth-status");
 const authUsername = document.querySelector("#auth-username");
@@ -40,18 +42,20 @@ function updateAuthUi() {
   const username = localStorage.getItem(AUTH_USERNAME_KEY);
   const isUserMode = activeMode === "user";
 
+  appShell.classList.toggle("guest-mode", !isUserMode);
+  appShell.classList.toggle("user-mode", isUserMode);
   guestModeButton.classList.toggle("active", !isUserMode);
   userModeButton.classList.toggle("active", isUserMode);
 
   if (isUserMode && username) {
     authStatus.textContent = `Signed in as ${username}`;
-    authForm.classList.add("hidden");
+    authPanel.classList.add("signed-in");
   } else if (isUserMode) {
     authStatus.textContent = "User mode";
-    authForm.classList.remove("hidden");
+    authPanel.classList.remove("signed-in");
   } else {
     authStatus.textContent = "Guest mode";
-    authForm.classList.add("hidden");
+    authPanel.classList.remove("signed-in");
   }
 }
 
@@ -194,9 +198,6 @@ async function logout() {
 
 function setMode(mode) {
   activeMode = mode;
-  if (mode === "guest") {
-    authForm.classList.add("hidden");
-  }
   updateAuthUi();
 }
 
