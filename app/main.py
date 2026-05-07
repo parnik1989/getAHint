@@ -26,16 +26,11 @@ app.include_router(modelController.router, prefix="/modelService")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def root():
-    return {
-        "service": "getAHintService",
-        "swagger_docs": "/docs",
-        "openapi_schema": "/openapi.json",
-        "chat": "/chat",
-    }
+    return FileResponse("app/static/chat.html")
 
 
-@app.get("/chat")
+@app.get("/chat", include_in_schema=False)
 def chat_page():
     return FileResponse("app/static/chat.html")
