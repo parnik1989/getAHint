@@ -1,13 +1,17 @@
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression 
 import joblib
 import os
 from datetime import datetime
 from app.core.paths import INTENT_MODEL_PATH, ML_DIR
+from app.db.models import EventRecord
 from app.db.schema import ensure_database_schema
 from app.db.session import engine
 from app.db.session import SessionLocal
+from app.services.answer_generation_service import generate_event_answer
+from app.services.category_service import classify_event_category, train_event_category_model
+from app.services.personalization_service import personalize_results
 from app.services.vector_service import backfill_event_embeddings, filter_and_rank_results, search_events_hybrid
 
 EVENT_QUERY_INTENTS = {"content_query", "search", "information", "event_query"}
@@ -19,22 +23,7 @@ CONVERSATIONAL_RESPONSES = {
 
 
 def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
-    if not results:
-        return "I could not find matching upcoming events in the available data."
-
-    prefix = "I found these matching events:"
-    if upcoming_only:
-        prefix = "I found these matching upcoming events:"
-    if fallback_to_past:
-        prefix = "I could not find upcoming events in the trained data. Closest trained matches are:"
-
-    lines = [prefix]
-    for event in results:
-        lines.append(
-            f"- {event['event_name']} on {event['event_date']} at {event['event_address']}. "
-            f"{event['event_description']}"
-        )
-    return "\n".join(lines)
+    return generate_event_answer("", results, upcoming_only=upcoming_only)
 
 
 def classify_intent(message: str) -> str:
@@ -53,7 +42,7 @@ def classify_intent(message: str) -> str:
         return "content_query"
 
 
-def build_chat_response(message: str, top_k: int = 5):
+def build_chat_response(message: str, top_k: int = 5, user_id: str | None = None):
     message = message.strip()
     if not message:
         return {"answer": "Ask me about upcoming events in Hyderabad.", "results": [], "total_matches": 0, "intent": "empty"}
@@ -75,12 +64,13 @@ def build_chat_response(message: str, top_k: int = 5):
             "intent": intent,
         }
 
-    model_response = testExistingModel(message, top_k=top_k)
+    model_response = testExistingModel(message, top_k=top_k, user_id=user_id)
     return {
         "answer": model_response.get("answer") or model_response.get("error", "I could not find an answer."),
         "results": model_response.get("results", []),
         "total_matches": model_response.get("total_matches", 0),
         "intent": intent,
+        "query_category": model_response.get("query_category"),
     }
 
 
@@ -165,8 +155,8 @@ def intent_train_model():
     y_train = [label for text, label in training_data]
 
     pipeline = Pipeline([
-        ('vectorizer', CountVectorizer()),
-        ('classifier', LogisticRegression())
+        ('vectorizer', TfidfVectorizer(ngram_range=(1, 2), min_df=1)),
+        ('classifier', LogisticRegression(max_iter=1000, class_weight="balanced"))
     ])
     pipeline.fit(X_train, y_train)
 
@@ -191,11 +181,15 @@ def trainEventModelService(data_source: str = None):
     print("=" * 60)
     
     # Train intent model first
-    print("\n[1/2] Training intent classification model...")
+    print("\n[1/3] Training intent classification model...")
     intent_train_model()
     
     # Train content/data model
-    print("\n[2/2] Training content embedding model...")
+    print("\n[2/3] Training event category classifier...")
+    category_stats = train_event_category_model()
+    categorize_stats = categorize_existing_events()
+
+    print("\n[3/3] Training content embedding model...")
     training_stats = train_generic_model()
     
     print("\n" + "=" * 60)
@@ -205,8 +199,29 @@ def trainEventModelService(data_source: str = None):
     return {
         "status": "Model training completed",
         "timestamp": datetime.now().isoformat(),
-        "training_stats": training_stats
+        "training_stats": {
+            **training_stats,
+            **category_stats,
+            **categorize_stats,
+        }
     }
+
+
+def categorize_existing_events():
+    ensure_database_schema(engine)
+    db = SessionLocal()
+    try:
+        records = db.query(EventRecord).all()
+        updated = 0
+        for record in records:
+            category = classify_event_category(record.event_name, record.event_description, record.event_address)
+            if record.category != category:
+                record.category = category
+                updated += 1
+        db.commit()
+        return {"categorized_records": len(records), "category_updates": updated}
+    finally:
+        db.close()
 
 def train_generic_model():
     """
@@ -221,7 +236,7 @@ def train_generic_model():
     finally:
         db.close()
 
-def testExistingModel(query: str, top_k: int = 5):
+def testExistingModel(query: str, top_k: int = 5, user_id: str | None = None):
     """
     Find the most relevant trained events for a user query.
     """
@@ -229,8 +244,10 @@ def testExistingModel(query: str, top_k: int = 5):
         db = SessionLocal()
         try:
             results = search_events_hybrid(db, query, top_k=max(top_k * 4, 10))
+            results = personalize_results(db, results, user_id)
             results, upcoming_only, fallback_to_past = filter_and_rank_results(results, query)
             results = results[:top_k]
+            query_category = classify_event_category(query)
         finally:
             db.close()
 
@@ -245,6 +262,7 @@ def testExistingModel(query: str, top_k: int = 5):
             "total_matches": len(results),
             "upcoming_only": upcoming_only,
             "fallback_to_past": fallback_to_past,
+            "query_category": query_category if query_category != "general" else None,
         }
 
     except Exception as e:

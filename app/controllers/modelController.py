@@ -7,6 +7,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     message: str
+    user_id: str | None = None
 
 
 @router.get("/trainEventModel")
@@ -46,4 +47,4 @@ def test_model(query: str):
 
 @router.post("/chat")
 def chat(request: ChatRequest):
-    return build_chat_response(request.message)
+    return build_chat_response(request.message, user_id=request.user_id)

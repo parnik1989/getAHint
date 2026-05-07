@@ -88,11 +88,13 @@ def _event_search_text(event: EventRecord | Event | Dict[str, Any]):
         event_description = event.get("event_description")
         event_date = event.get("event_date")
         event_address = event.get("event_address")
+        category = event.get("category")
     else:
         event_name = event.event_name
         event_description = event.event_description
         event_date = event.event_date
         event_address = event.event_address
+        category = getattr(event, "category", None)
 
     return " | ".join(
         value
@@ -101,6 +103,7 @@ def _event_search_text(event: EventRecord | Event | Dict[str, Any]):
             _clean_value(event_description),
             _clean_value(event_date),
             _clean_value(event_address),
+            _clean_value(category),
         )
         if value
     )
@@ -144,6 +147,7 @@ def _row_to_result(row, similarity_score: float) -> Dict[str, Any]:
         "event_description": _clean_value(row.event_description),
         "event_date": event_date,
         "event_address": _clean_value(row.event_address),
+        "category": _clean_value(getattr(row, "category", None)) or None,
         "similarity_score": round(float(similarity_score), 4),
     }
 
@@ -194,6 +198,7 @@ def search_events_by_embedding(db: Session, query: str, top_k: int = 5) -> List[
                     event_description,
                     event_date,
                     event_address,
+                    category,
                     1 - (event_embedding <=> CAST(:embedding AS vector)) AS similarity_score
                 FROM events
                 WHERE event_embedding IS NOT NULL
@@ -210,6 +215,7 @@ def search_events_by_embedding(db: Session, query: str, top_k: int = 5) -> List[
                 "event_description": row["event_description"],
                 "event_date": row["event_date"],
                 "event_address": row["event_address"],
+                "category": row["category"],
                 "similarity_score": round(float(row["similarity_score"]), 4),
             }
             for row in rows
@@ -297,12 +303,14 @@ def _lexical_score(record: EventRecord, query_terms: set[str], wants_upcoming: b
     name_terms = _meaningful_terms(record.event_name)
     description_terms = _meaningful_terms(record.event_description)
     address_terms = _meaningful_terms(record.event_address)
+    category_terms = _meaningful_terms(getattr(record, "category", None) or "")
     overlap_score = (
         0.45 * len(query_terms & name_terms)
         + 0.3 * len(query_terms & description_terms)
         + 0.15 * len(query_terms & address_terms)
+        + 0.25 * len(query_terms & category_terms)
     )
-    coverage = len(query_terms & (name_terms | description_terms | address_terms)) / max(len(query_terms), 1)
+    coverage = len(query_terms & (name_terms | description_terms | address_terms | category_terms)) / max(len(query_terms), 1)
     score = min(0.95, overlap_score + (0.25 * coverage))
     if wants_upcoming and score > 0:
         score = min(0.98, score + 0.05)

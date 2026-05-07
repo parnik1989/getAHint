@@ -9,6 +9,7 @@ class EventCreate(BaseModel):
     event_description: str
     event_date: str
     event_address: str
+    category: str | None = None
     source_name: str | None = None
     source_type: str | None = None
 
@@ -29,3 +30,11 @@ class Event(BaseModel):
     event_description: str
     event_date: date
     event_address: str
+    category: str | None = None
+
+
+class EventInteractionCreate(BaseModel):
+    user_id: str
+    event_id: int
+    interaction_type: str = "click"
+    query: str | None = None

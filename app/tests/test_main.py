@@ -54,6 +54,55 @@ def test_get_all_event_data():
     _delete_test_event()
 
 
+def test_ingestion_assigns_event_category():
+    _delete_test_event()
+    created = client.post(
+        "/eventService/events?train_model=false",
+        json={
+            "event_name": "Test Future Science Workshop",
+            "event_description": "AI workshop for product builders.",
+            "event_date": "2999-06-01",
+            "event_address": "Hyderabad",
+            "source_name": "test",
+            "source_type": "api",
+        },
+    )
+
+    assert created.status_code == 201
+    assert created.json()["event"]["category"] in {"tech", "workshop"}
+    _delete_test_event()
+
+
+def test_records_event_interaction():
+    _delete_test_event()
+    created = client.post(
+        "/eventService/events?train_model=false",
+        json={
+            "event_name": "Test Future Science Workshop",
+            "event_description": "AI workshop for product builders.",
+            "event_date": "2999-06-01",
+            "event_address": "Hyderabad",
+            "source_name": "test",
+            "source_type": "api",
+        },
+    )
+    event_id = created.json()["event"]["id"]
+
+    response = client.post(
+        "/eventService/events/interactions",
+        json={
+            "user_id": "test-user",
+            "event_id": event_id,
+            "interaction_type": "click",
+            "query": "ai workshops",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "recorded"
+    _delete_test_event()
+
+
 def test_chat_greeting_does_not_return_events():
     response = client.post("/modelService/chat", json={"message": "hi"})
 

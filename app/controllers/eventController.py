@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, status, UploadFile
 from typing import List
 from sqlalchemy.orm import Session
 from app.db.session import get_db
+from app.schemas.eventSchema import EventInteractionCreate
 from app.services.event_service import (
     consolidateAllEventsFromDataStore,
     process_image_file,
@@ -10,6 +11,7 @@ from app.services.event_service import (
 )
 from app.models.eventModel import Event
 from app.schemas.eventSchema import EventCreate, WebIngestionRequest
+from app.services.personalization_service import record_event_interaction
 from app.services.web_ingestion_service import ingest_web_events
 
 router = APIRouter()
@@ -68,3 +70,8 @@ async def upload_event_image(file: UploadFile = File(...), train_model: bool = T
         return {"events": events, "model_training": training_result}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/events/interactions", status_code=201)
+def create_event_interaction(interaction: EventInteractionCreate, db: Session = Depends(get_db)):
+    return record_event_interaction(db, interaction)

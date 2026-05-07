@@ -16,3 +16,4 @@ class Event(BaseModel):
     event_description: str
     event_date: str
     event_address: str
+    category: str | None = None

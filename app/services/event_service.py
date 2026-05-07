@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from app.db.models import EventRecord
 from app.db.session import SessionLocal
 from app.schemas.eventSchema import EventCreate
+from app.services.category_service import classify_event_category
 from app.services.vector_service import store_event_embedding
 
 
@@ -37,6 +38,7 @@ def _event_record_to_schema(record: EventRecord) -> Event:
         event_description=record.event_description,
         event_date=record.event_date,
         event_address=record.event_address,
+        category=record.category,
     )
 
 
@@ -49,6 +51,7 @@ def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True)
     event_date = _normalize_date(event.event_date)
     source_name = event.source_name[:255] if event.source_name else None
     source_type = event.source_type[:50] if event.source_type else None
+    category = (event.category or classify_event_category(event.event_name, event.event_description, event.event_address))[:50]
     existing = (
         db.query(EventRecord)
         .filter(
@@ -62,6 +65,7 @@ def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True)
     if existing:
         existing.event_description = event.event_description
         existing.event_date = event_date
+        existing.category = category
         existing.source_name = source_name
         existing.source_type = source_type
         record = existing
@@ -71,6 +75,7 @@ def upsert_event(db: Session, event: EventCreate, update_embedding: bool = True)
             event_description=event.event_description,
             event_date=event_date,
             event_address=event.event_address,
+            category=category,
             source_name=source_name,
             source_type=source_type,
         )

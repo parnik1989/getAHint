@@ -31,6 +31,9 @@ def ensure_database_schema(engine):
         if "embedding_json" not in columns:
             connection.execute(text("ALTER TABLE events ADD COLUMN embedding_json TEXT"))
 
+        if "category" not in columns:
+            connection.execute(text("ALTER TABLE events ADD COLUMN category VARCHAR(50)"))
+
         if dialect_name == "postgresql":
             connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             if "event_embedding" not in columns:
