@@ -13,7 +13,7 @@ from app.services.vector_service import backfill_event_embeddings, filter_and_ra
 
 def format_event_answer(results, upcoming_only=False, fallback_to_past=False):
     if not results:
-        return "I could not find matching events in the trained data."
+        return "I could not find matching upcoming events in the available data."
 
     prefix = "I found these matching events:"
     if upcoming_only:

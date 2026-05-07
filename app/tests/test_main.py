@@ -13,7 +13,15 @@ client = TestClient(app)
 def _delete_test_event():
     db = SessionLocal()
     try:
-        db.query(EventRecord).filter(EventRecord.event_name.in_(("Test Event", "Test Future Science Workshop"))).delete()
+        db.query(EventRecord).filter(
+            EventRecord.event_name.in_(
+                (
+                    "Test Event",
+                    "Test Future Science Workshop",
+                    "Test Past AI Workshop",
+                )
+            )
+        ).delete()
         db.commit()
     finally:
         db.close()
@@ -174,3 +182,43 @@ def test_hybrid_search_uses_latest_database_rows_without_embeddings():
 
     assert results
     assert results[0]["event_name"] == "Test Future Science Workshop"
+
+
+def test_chat_ranking_excludes_past_events():
+    _delete_test_event()
+    db = SessionLocal()
+    try:
+        upsert_event(
+            db,
+            EventCreate(
+                event_name="Test Past AI Workshop",
+                event_description="AI workshop with an already passed date.",
+                event_date="2020-01-01",
+                event_address="Hyderabad",
+                source_name="test",
+                source_type="api",
+            ),
+            update_embedding=False,
+        )
+        upsert_event(
+            db,
+            EventCreate(
+                event_name="Test Future Science Workshop",
+                event_description="AI workshop with an upcoming date.",
+                event_date="2999-06-01",
+                event_address="Hyderabad",
+                source_name="test",
+                source_type="api",
+            ),
+            update_embedding=False,
+        )
+        results = search_events_hybrid(db, "AI workshop Hyderabad", top_k=10)
+        filtered, _, fallback_to_past = filter_and_rank_results(results, "AI workshop Hyderabad")
+    finally:
+        db.close()
+        _delete_test_event()
+
+    event_names = {result["event_name"] for result in filtered}
+    assert "Test Future Science Workshop" in event_names
+    assert "Test Past AI Workshop" not in event_names
+    assert fallback_to_past is False

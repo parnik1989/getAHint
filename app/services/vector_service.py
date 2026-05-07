@@ -263,7 +263,7 @@ def search_events_by_text(db: Session, query: str, top_k: int = 5) -> List[Dict[
 
     for record in records:
         parsed_date = _parse_event_date(record.event_date)
-        if wants_upcoming and parsed_date and parsed_date < today:
+        if parsed_date and parsed_date < today:
             continue
 
         score = _lexical_score(record, query_terms, wants_upcoming)
@@ -320,24 +320,18 @@ def filter_and_rank_results(results: List[Dict[str, Any]], query: str) -> tuple[
     results = _filter_relevant_results(results, query)
     today = date.today()
     wants_upcoming = _is_upcoming_query(query)
-    fallback_to_past = False
+    upcoming_results = []
+    for result in results:
+        parsed_date = _parse_event_date(result.get("event_date"))
+        if parsed_date and parsed_date >= today:
+            upcoming_results.append(result)
 
-    if wants_upcoming:
-        upcoming_results = []
-        for result in results:
-            parsed_date = _parse_event_date(result.get("event_date"))
-            if parsed_date and parsed_date >= today:
-                upcoming_results.append(result)
+    results = sorted(
+        upcoming_results,
+        key=lambda result: (_parse_event_date(result.get("event_date")), -result["similarity_score"]),
+    )
 
-        if upcoming_results:
-            results = sorted(
-                upcoming_results,
-                key=lambda result: (_parse_event_date(result.get("event_date")), -result["similarity_score"]),
-            )
-        else:
-            fallback_to_past = True
-
-    return results, bool(wants_upcoming) and not fallback_to_past, fallback_to_past
+    return results, bool(wants_upcoming), False
 
 
 def _filter_relevant_results(results: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
