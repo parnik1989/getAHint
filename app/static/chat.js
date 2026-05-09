@@ -1,28 +1,32 @@
 const form = document.querySelector("#chat-form");
 const appShell = document.querySelector("#app-shell");
+const modeScreen = document.querySelector("#mode-screen");
+const authScreen = document.querySelector("#auth-screen");
+const chatScreen = document.querySelector("#chat-screen");
+const selectGuestButton = document.querySelector("#select-guest");
+const selectUserButton = document.querySelector("#select-user");
+const backToModeButton = document.querySelector("#back-to-mode");
+const switchModeButton = document.querySelector("#switch-mode");
 const input = document.querySelector("#message-input");
 const messages = document.querySelector("#messages");
 const submitButton = form.querySelector("button");
-const authPanel = document.querySelector("#auth-panel");
 const authForm = document.querySelector("#auth-form");
 const authStatus = document.querySelector("#auth-status");
 const authUsername = document.querySelector("#auth-username");
 const authPassword = document.querySelector("#auth-password");
 const registerButton = document.querySelector("#register-button");
+const profilePanel = document.querySelector("#profile-panel");
 const profileForm = document.querySelector("#profile-form");
 const profileDisplayName = document.querySelector("#profile-display-name");
 const profileCity = document.querySelector("#profile-city");
 const preferenceOptions = document.querySelector("#preference-options");
-const modeSlider = document.querySelector("#mode-slider");
-const modeCheckbox = document.querySelector("#mode-checkbox");
-const userChip = document.querySelector("#user-chip");
 const logoutButton = document.querySelector("#logout-button");
 const USER_ID_KEY = "getahint_user_id";
 const AUTH_TOKEN_KEY = "getahint_auth_token";
 const AUTH_USERNAME_KEY = "getahint_auth_username";
 const DEFAULT_CATEGORIES = ["cultural", "music", "tech", "startup", "comedy", "workshop", "business", "family"];
 let lastQuery = "";
-let activeMode = localStorage.getItem(AUTH_TOKEN_KEY) ? "user" : "guest";
+let activeMode = null;
 let profileLoaded = false;
 
 function getUserId() {
@@ -52,24 +56,27 @@ function updateAuthUi() {
 
   appShell.classList.toggle("guest-mode", !isUserMode);
   appShell.classList.toggle("user-mode", isUserMode);
-  modeCheckbox.checked = isUserMode;
 
   if (isUserMode && username) {
     authStatus.textContent = username;
-    authPanel.classList.add("signed-in");
-    modeSlider.classList.add("d-none");
-    userChip.classList.remove("d-none");
+    logoutButton.classList.remove("d-none");
+    profilePanel.classList.remove("d-none");
     if (!profileLoaded) {
       loadProfile();
     }
-  } else if (isUserMode) {
-    authPanel.classList.remove("signed-in");
-    modeSlider.classList.remove("d-none");
-    userChip.classList.add("d-none");
   } else {
-    authPanel.classList.remove("signed-in");
-    modeSlider.classList.remove("d-none");
-    userChip.classList.add("d-none");
+    authStatus.textContent = "Guest mode";
+    logoutButton.classList.add("d-none");
+    profilePanel.classList.add("d-none");
+  }
+}
+
+function showScreen(screen) {
+  modeScreen.classList.toggle("d-none", screen !== "mode");
+  authScreen.classList.toggle("d-none", screen !== "auth");
+  chatScreen.classList.toggle("d-none", screen !== "chat");
+  if (screen === "chat") {
+    input.focus();
   }
 }
 
@@ -220,6 +227,7 @@ async function authenticate(mode) {
   authPassword.value = "";
   updateAuthUi();
   await loadProfile();
+  showScreen("chat");
   addMessage("assistant", `Signed in as ${payload.username}. I will use your event picks for personalization.`);
 }
 
@@ -227,10 +235,9 @@ async function logout() {
   await fetch("/auth/logout", { method: "POST", headers: authHeaders() });
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USERNAME_KEY);
-  activeMode = "guest";
+  activeMode = null;
   profileLoaded = false;
-  updateAuthUi();
-  addMessage("assistant", "Signed out. I will use this browser's guest preferences now.");
+  showScreen("mode");
 }
 
 function setMode(mode) {
@@ -320,11 +327,25 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-modeCheckbox.addEventListener("change", () => {
-  setMode(modeCheckbox.checked ? "user" : "guest");
-  if (modeCheckbox.checked) {
-    authUsername.focus();
-  }
+selectGuestButton.addEventListener("click", () => {
+  setMode("guest");
+  showScreen("chat");
+});
+
+selectUserButton.addEventListener("click", () => {
+  setMode("user");
+  showScreen("auth");
+  authUsername.focus();
+});
+
+backToModeButton.addEventListener("click", () => {
+  activeMode = null;
+  showScreen("mode");
+});
+
+switchModeButton.addEventListener("click", () => {
+  activeMode = null;
+  showScreen("mode");
 });
 
 logoutButton.addEventListener("click", logout);
@@ -343,4 +364,10 @@ profileForm.addEventListener("submit", async (event) => {
   await saveProfile();
 });
 
-updateAuthUi();
+if (localStorage.getItem(AUTH_TOKEN_KEY)) {
+  activeMode = "user";
+  updateAuthUi();
+  showScreen("chat");
+} else {
+  showScreen("mode");
+}

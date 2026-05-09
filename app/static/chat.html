@@ -13,8 +13,45 @@
     <link rel="stylesheet" href="/static/chat.css" />
   </head>
   <body>
-    <main id="app-shell" class="app-shell guest-mode">
-      <section class="chat-panel card border-0" aria-label="Event chat">
+    <main id="app-shell" class="app-shell">
+      <section id="mode-screen" class="onboarding-panel card border-0" aria-label="Choose access mode">
+        <div class="onboarding-hero">
+          <span class="brand-pill">getAHint</span>
+          <h1>Find upcoming events that match your mood.</h1>
+          <p>Choose how you want recommendations to be personalized.</p>
+        </div>
+        <div class="mode-cards">
+          <button id="select-guest" class="mode-card" type="button">
+            <span class="mode-icon">G</span>
+            <strong>Continue as Guest</strong>
+            <span>Quick event search with preferences saved only in this browser.</span>
+          </button>
+          <button id="select-user" class="mode-card featured" type="button">
+            <span class="mode-icon">U</span>
+            <strong>User Mode</strong>
+            <span>Login or register to keep your profile and preferences across devices.</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="auth-screen" class="auth-screen card border-0 d-none" aria-label="Login or register">
+        <button id="back-to-mode" class="btn btn-link auth-back" type="button">Back</button>
+        <div class="auth-card">
+          <span class="brand-pill">User Mode</span>
+          <h1>Welcome back</h1>
+          <p>Login or create an account to maintain your profile and event preferences.</p>
+          <form id="auth-form" class="auth-form">
+            <input id="auth-username" class="form-control form-control-lg" name="username" type="text" autocomplete="username" placeholder="Username" />
+            <input id="auth-password" class="form-control form-control-lg" name="password" type="password" autocomplete="current-password" placeholder="Password" />
+            <div class="auth-buttons">
+              <button class="btn btn-primary btn-lg" type="submit">Login</button>
+              <button id="register-button" class="btn btn-outline-primary btn-lg" type="button">Register</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="chat-screen" class="chat-panel card border-0 d-none" aria-label="Event chat">
         <header class="chat-header card-header">
           <div class="brand-block">
             <div>
@@ -23,38 +60,23 @@
             </div>
           </div>
           <div class="header-actions">
-            <label id="mode-slider" class="mode-slider" aria-label="Switch between guest and user mode">
-              <input id="mode-checkbox" type="checkbox" />
-              <span class="mode-track">
-                <span>Guest</span>
-                <span>User</span>
-              </span>
-              <span class="mode-thumb"></span>
-            </label>
-            <div id="user-chip" class="user-chip d-none">
-              <span id="auth-status" class="badge rounded-pill text-bg-success">Guest mode</span>
-              <button id="logout-button" class="btn btn-sm btn-outline-secondary" type="button">Logout</button>
-            </div>
+            <span id="auth-status" class="badge rounded-pill text-bg-primary">Guest mode</span>
+            <button id="switch-mode" class="btn btn-sm btn-outline-primary" type="button">Switch mode</button>
+            <button id="logout-button" class="btn btn-sm btn-outline-secondary d-none" type="button">Logout</button>
             <a href="/docs" class="btn btn-sm btn-outline-secondary">API Docs</a>
           </div>
         </header>
 
-        <section id="auth-panel" class="auth-panel alert alert-success border-0 rounded-0 mb-0" aria-label="User account">
+        <section id="profile-panel" class="profile-panel alert alert-primary border-0 rounded-0 mb-0 d-none" aria-label="User profile">
           <div class="auth-copy">
-            <strong>Personalize across devices</strong>
-            <span>Sign in to keep your event preferences with your account.</span>
+            <strong>Maintain your profile</strong>
+            <span>Save your city and preferred event categories.</span>
           </div>
-          <form id="auth-form" class="auth-form">
-            <input id="auth-username" class="form-control" name="username" type="text" autocomplete="username" placeholder="Username" />
-            <input id="auth-password" class="form-control" name="password" type="password" autocomplete="current-password" placeholder="Password" />
-            <button class="btn btn-success" type="submit">Login</button>
-            <button id="register-button" class="btn btn-outline-success" type="button">Register</button>
-          </form>
           <form id="profile-form" class="profile-form">
             <input id="profile-display-name" class="form-control" type="text" placeholder="Display name" />
             <input id="profile-city" class="form-control" type="text" placeholder="City" />
             <div id="preference-options" class="preference-options" aria-label="Preferred event categories"></div>
-            <button class="btn btn-success" type="submit">Save profile</button>
+            <button class="btn btn-primary" type="submit">Save profile</button>
           </form>
         </section>
 
