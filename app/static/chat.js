@@ -9,6 +9,10 @@ const authStatus = document.querySelector("#auth-status");
 const authUsername = document.querySelector("#auth-username");
 const authPassword = document.querySelector("#auth-password");
 const registerButton = document.querySelector("#register-button");
+const profileForm = document.querySelector("#profile-form");
+const profileDisplayName = document.querySelector("#profile-display-name");
+const profileCity = document.querySelector("#profile-city");
+const preferenceOptions = document.querySelector("#preference-options");
 const modeSlider = document.querySelector("#mode-slider");
 const modeCheckbox = document.querySelector("#mode-checkbox");
 const userChip = document.querySelector("#user-chip");
@@ -16,8 +20,10 @@ const logoutButton = document.querySelector("#logout-button");
 const USER_ID_KEY = "getahint_user_id";
 const AUTH_TOKEN_KEY = "getahint_auth_token";
 const AUTH_USERNAME_KEY = "getahint_auth_username";
+const DEFAULT_CATEGORIES = ["cultural", "music", "tech", "startup", "comedy", "workshop", "business", "family"];
 let lastQuery = "";
 let activeMode = localStorage.getItem(AUTH_TOKEN_KEY) ? "user" : "guest";
+let profileLoaded = false;
 
 function getUserId() {
   const username = activeMode === "user" ? localStorage.getItem(AUTH_USERNAME_KEY) : null;
@@ -53,6 +59,9 @@ function updateAuthUi() {
     authPanel.classList.add("signed-in");
     modeSlider.classList.add("d-none");
     userChip.classList.remove("d-none");
+    if (!profileLoaded) {
+      loadProfile();
+    }
   } else if (isUserMode) {
     authPanel.classList.remove("signed-in");
     modeSlider.classList.remove("d-none");
@@ -210,6 +219,7 @@ async function authenticate(mode) {
   activeMode = "user";
   authPassword.value = "";
   updateAuthUi();
+  await loadProfile();
   addMessage("assistant", `Signed in as ${payload.username}. I will use your event picks for personalization.`);
 }
 
@@ -218,6 +228,7 @@ async function logout() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USERNAME_KEY);
   activeMode = "guest";
+  profileLoaded = false;
   updateAuthUi();
   addMessage("assistant", "Signed out. I will use this browser's guest preferences now.");
 }
@@ -225,6 +236,61 @@ async function logout() {
 function setMode(mode) {
   activeMode = mode;
   updateAuthUi();
+}
+
+async function loadProfile() {
+  if (!getAuthToken()) return;
+
+  const response = await fetch("/auth/profile", { headers: authHeaders() });
+  const payload = await response.json();
+  if (!payload.authenticated) return;
+
+  const profile = payload.profile;
+  profileDisplayName.value = profile.display_name || "";
+  profileCity.value = profile.city || "Hyderabad";
+  renderPreferenceOptions(profile.supported_categories || DEFAULT_CATEGORIES, profile.preferred_categories || []);
+  profileLoaded = true;
+}
+
+function renderPreferenceOptions(categories, selectedCategories) {
+  const selected = new Set(selectedCategories);
+  preferenceOptions.innerHTML = "";
+  categories
+    .filter((category) => category !== "general")
+    .forEach((category) => {
+      const label = document.createElement("label");
+      label.className = "preference-chip";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = category;
+      checkbox.checked = selected.has(category);
+
+      const text = document.createElement("span");
+      text.textContent = category;
+
+      label.append(checkbox, text);
+      preferenceOptions.appendChild(label);
+    });
+}
+
+async function saveProfile() {
+  const preferredCategories = Array.from(preferenceOptions.querySelectorAll("input:checked")).map((input) => input.value);
+  const response = await fetch("/auth/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      display_name: profileDisplayName.value,
+      city: profileCity.value,
+      preferred_categories: preferredCategories,
+    }),
+  });
+  const payload = await response.json();
+  if (!payload.authenticated) {
+    addMessage("assistant", "Please login again to save your profile.");
+    return;
+  }
+  addMessage("assistant", "Profile preferences saved. I will use them in your recommendations.");
 }
 
 form.addEventListener("submit", async (event) => {
@@ -270,6 +336,11 @@ authForm.addEventListener("submit", async (event) => {
 
 registerButton.addEventListener("click", async () => {
   await authenticate("register");
+});
+
+profileForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveProfile();
 });
 
 updateAuthUi();

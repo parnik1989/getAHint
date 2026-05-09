@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import EventInteraction, EventRecord
 from app.schemas.eventSchema import EventInteractionCreate
+from app.services.user_profile_service import explicit_category_preferences
 
 INTERACTION_WEIGHTS = {
     "click": 1.0,
@@ -30,13 +31,18 @@ def user_category_preferences(db: Session, user_id: str | None) -> dict[str, flo
     if not user_id:
         return {}
 
+    scores = Counter()
+
+    account_id = _account_id_from_public_user_id(user_id)
+    for category, weight in explicit_category_preferences(db, account_id).items():
+        scores[category] += weight
+
     rows = (
         db.query(EventInteraction.interaction_type, EventRecord.category)
         .join(EventRecord, EventRecord.id == EventInteraction.event_id)
         .filter(EventInteraction.user_id == user_id, EventRecord.category.isnot(None))
         .all()
     )
-    scores = Counter()
     for interaction_type, category in rows:
         scores[category] += INTERACTION_WEIGHTS.get(interaction_type, 1.0)
     return dict(scores)
@@ -64,3 +70,12 @@ def personalize_results(db: Session, results: List[Dict[str, Any]], user_id: str
 
 def has_user_preferences(db: Session, user_id: str | None) -> bool:
     return bool(user_category_preferences(db, user_id))
+
+
+def _account_id_from_public_user_id(user_id: str | None) -> int | None:
+    if not user_id or not user_id.startswith("user-"):
+        return None
+    try:
+        return int(user_id.split("-", 1)[1])
+    except ValueError:
+        return None

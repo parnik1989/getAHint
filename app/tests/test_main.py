@@ -149,6 +149,37 @@ def test_register_login_and_authenticated_personalization():
     _delete_test_event()
 
 
+def test_authenticated_user_profile_preferences_personalize_chat():
+    _delete_test_event()
+    username = "profileuser"
+    password = "secret123"
+    client.post("/auth/register", json={"username": username, "password": password})
+    login = client.post("/auth/login", json={"username": username, "password": password})
+    token = login.json()["token"]
+
+    profile = client.put(
+        "/auth/profile",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "display_name": "Profile User",
+            "city": "Hyderabad",
+            "preferred_categories": ["music", "cultural"],
+        },
+    )
+
+    assert profile.status_code == 200
+    assert profile.json()["profile"]["preferred_categories"] == ["cultural", "music"]
+
+    response = client.post(
+        "/modelService/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "upcoming events"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["personalized"] is True
+
+
 def test_chat_response_marks_personalized_after_interaction():
     _delete_test_event()
     created = client.post(

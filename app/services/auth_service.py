@@ -44,6 +44,11 @@ def logout_user(db: Session, token: str | None) -> dict:
 
 
 def get_user_id_for_token(db: Session, token: str | None) -> str | None:
+    user_id = get_account_id_for_token(db, token)
+    return f"user-{user_id}" if user_id is not None else None
+
+
+def get_account_id_for_token(db: Session, token: str | None) -> int | None:
     token = _clean_token(token)
     if not token:
         return None
@@ -51,7 +56,7 @@ def get_user_id_for_token(db: Session, token: str | None) -> str | None:
     session = db.query(UserSession).filter(UserSession.token == token).one_or_none()
     if not session:
         return None
-    return f"user-{session.user_id}"
+    return int(session.user_id)
 
 
 def current_user(db: Session, token: str | None) -> dict | None:

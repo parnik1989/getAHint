@@ -172,6 +172,10 @@ body {
   display: none;
 }
 
+.auth-panel:not(.signed-in) .profile-form {
+  display: none;
+}
+
 .auth-copy {
   display: grid;
   gap: 2px;
@@ -191,6 +195,49 @@ body {
   grid-template-columns: 1fr 1fr auto auto;
   gap: 10px;
   align-items: center;
+}
+
+.profile-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(260px, 1.5fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.preference-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preference-chip {
+  margin: 0;
+  cursor: pointer;
+}
+
+.preference-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preference-chip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 999px;
+  background: #fff;
+  color: #0f5132;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.preference-chip input:checked + span {
+  background: #0f766e;
+  color: #fff;
 }
 
 .messages {
@@ -369,6 +416,10 @@ body {
   }
 
   .auth-form {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form {
     grid-template-columns: 1fr;
   }
 
